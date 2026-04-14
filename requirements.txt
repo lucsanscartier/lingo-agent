@@ -1,0 +1,22 @@
+# ── LiveKit ───────────────────────────────────────────────────────────────────
+livekit>=0.17.0
+livekit-agents>=0.8.0
+livekit-plugins-deepgram>=0.6.0   # Deepgram STT plugin for livekit-agents
+livekit-plugins-openai>=0.6.0     # Used for HF-compatible OpenAI-style LLM calls
+
+# ── Speech-to-Text ────────────────────────────────────────────────────────────
+deepgram-sdk>=3.2.0
+
+# ── Text-to-Speech (Kokoro via HF Inference) ──────────────────────────────────
+# The agent calls HF Inference TTS via raw HTTP; no extra SDK needed.
+# soundfile and numpy are used to decode the returned PCM/WAV bytes.
+soundfile>=0.12.1
+numpy>=1.26.0
+
+# ── HTTP / async ──────────────────────────────────────────────────────────────
+requests>=2.31.0
+httpx>=0.27.0          # async HTTP for LLM + TTS calls
+aiofiles>=23.2.1       # async file I/O
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0   # load .env file into os.environ
