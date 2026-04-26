@@ -5,101 +5,169 @@ colorFrom: purple
 colorTo: cyan
 sdk: docker
 pinned: true
-app_port: 8080
+app_port: 7860
 ---
 
 # LINGO — AI Phone Agent
 
-> *Your business never stops talking.*
+> Your business never stops talking.
 
-LINGO is a fully autonomous AI phone agent. Give your business a real phone number. LINGO answers every call 24/7, remembers every caller, handles FAQs, books appointments, sends follow-up texts, and escalates to a human when needed.
+LINGO is a beta AI phone-agent backend. It is designed to answer inbound LiveKit SIP calls, transcribe callers with Deepgram, generate concise receptionist-style replies with Hugging Face chat inference, speak responses with Hugging Face TTS, and remember callers across calls.
 
----
+## Current status
+
+**Beta, not full production yet.**
+
+Implemented:
+
+- LiveKit worker entrypoint for inbound audio jobs
+- Deepgram streaming STT
+- Hugging Face router-compatible chat completions
+- Hugging Face hf-inference TTS adapter with payload fallback
+- SQLite-backed caller memory
+- `/health`, `/status`, and `/metrics` HTTP endpoints
+- Optional escalation webhook hook
+- Docker/Hugging Face Spaces deployment shape
+
+Not fully implemented yet:
+
+- Real SIP transfer to a human
+- Calendar booking integration
+- SMS follow-up
+- Client dashboard
+- Billing/subscription portal
+- Multi-tenant client configuration
+- Production privacy/compliance review
 
 ## Architecture
 
-```
+```text
 Inbound call → LiveKit SIP
       │
       ▼
-Deepgram STT  (streaming, real-time transcription)
+Deepgram STT
       │ transcript
       ▼
-Qwen2.5-7B-Instruct  (HF Serverless Inference — free)
+Hugging Face chat router
       │ text reply
       ▼
-Kokoro-82M TTS  (HF Serverless Inference — free)
-      │ audio frames
+Hugging Face TTS
+      │ audio bytes
       ▼
 LiveKit audio track → caller hears LINGO
 ```
 
-**Memory:** Kirk persistent memory engine — every caller is remembered by phone number across all calls, forever.
+Runtime status:
 
----
-
-## Setup (Free — No Credit Card Required)
-
-### 1. LiveKit (free phone number + real-time audio)
-- Sign up at [livekit.io](https://livekit.io) — free tier, no CC
-- Create a project → copy `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
-- In LiveKit console → SIP → buy a free US phone number (50 inbound mins/month free)
-
-### 2. Deepgram (speech-to-text)
-- Sign up at [deepgram.com](https://deepgram.com) — $200 free credits (~433 hours)
-- Create an API key → copy `DEEPGRAM_API_KEY`
-
-### 3. Hugging Face Token
-- Go to [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-- Create a read-scope token → copy as `HF_TOKEN`
-
-### 4. Set Secrets in HF Spaces
-In this Space → Settings → Repository Secrets, add:
+```text
+GET /health
+GET /status
+GET /metrics
 ```
+
+## Setup
+
+### 1. LiveKit
+
+Create a LiveKit project and configure SIP/inbound calling. Add these secrets:
+
+```text
 LIVEKIT_URL
 LIVEKIT_API_KEY
 LIVEKIT_API_SECRET
+```
+
+### 2. Deepgram
+
+Create a Deepgram API key and add:
+
+```text
 DEEPGRAM_API_KEY
+```
+
+### 3. Hugging Face
+
+Create a fine-grained Hugging Face token with permission to make Inference Providers calls and add:
+
+```text
 HF_TOKEN
 ```
 
-### 5. Restart the Space
-The agent starts automatically and connects to your LiveKit project. When a call comes in, LINGO answers.
+Default model settings:
 
----
+```text
+HF_CHAT_MODEL=Qwen/Qwen2.5-7B-Instruct:fastest
+HF_CHAT_URL=https://router.huggingface.co/v1/chat/completions
+HF_TTS_MODEL=hexgrad/Kokoro-82M
+HF_TTS_URL=https://router.huggingface.co/hf-inference/models/hexgrad/Kokoro-82M
+```
 
-## Customizing Your Agent
+### 4. Memory
 
-Edit `prompts.py` to change:
-- **Business name and description** — what LINGO knows about your business
-- **FAQs** — hours, services, pricing, location
-- **Booking flow** — what info to collect for appointments
-- **Escalation trigger** — when to hand off to a human
+Default beta memory uses SQLite:
 
----
+```text
+MEMORY_BACKEND=sqlite
+MEMORY_DB=/data/lingo_memory.sqlite3
+MAX_TURNS=10
+```
 
-## Pricing (LINGO as a Service)
+Legacy JSON mode remains available:
 
-| Plan | Price | Includes |
-|------|-------|---------|
-| Starter | $29/month | 1 agent line, 500 call minutes, SMS, memory |
-| Pro | $79/month | 3 lines, 2000 minutes, custom voice |
-| Agency | $199/month | 10 lines, white label, API access |
+```text
+MEMORY_BACKEND=json
+MEMORY_FILE=conversation_memory.json
+```
 
-**→ [Get your agent line](https://lingo.lemonsqueezy.com)**
+### 5. Run locally
 
----
+```bash
+cp .env.example .env
+# edit .env with real secrets
+docker build -t lingo-backend .
+docker run --env-file .env -p 7860:7860 lingo-backend
+```
 
-## Built By
+Check:
 
-Luc — solo founder, Edmonton. Built overnight using free tiers and AI tools.  
-Powered by the **Kirk memory architecture** — persistent, hyperbolic, non-linear.
+```bash
+curl http://localhost:7860/health
+curl http://localhost:7860/status
+curl http://localhost:7860/metrics
+```
 
----
+## Customizing the agent
 
-## Stack
-- [LiveKit Agents](https://github.com/livekit/agents) — real-time voice pipeline
-- [Deepgram](https://deepgram.com) — speech-to-text
-- [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) — LLM brain
-- [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) — text-to-speech
-- Kirk Memory Engine — persistent caller memory
+Edit `prompts.py` for the receptionist personality, business FAQs, booking intake rules, and escalation behavior.
+
+Use `ESCALATION_WEBHOOK_URL` to notify an external service when a caller asks for a human. This is not yet a full SIP transfer.
+
+## Honest product wording
+
+Safe beta claim:
+
+> LINGO answers calls, remembers callers, answers known FAQs, collects messages and appointment requests, and alerts a human when escalation is needed.
+
+Avoid claiming full appointment booking, SMS follow-up, or live transfer until those modules are implemented.
+
+## Monetization path
+
+Starter beta package:
+
+- 1 phone line
+- AI receptionist
+- caller memory
+- message capture
+- appointment request capture
+- owner escalation alerts
+- weekly call summary
+
+Next production upgrades:
+
+- SIP transfer
+- SMS follow-up
+- Google Calendar booking
+- CRM/customer dashboard
+- billing
+- multi-client tenant config
+- privacy/security review
