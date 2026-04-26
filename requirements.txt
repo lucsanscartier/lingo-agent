@@ -1,22 +1,24 @@
-# ── LiveKit ───────────────────────────────────────────────────────────────────
-livekit>=0.17.0
-livekit-agents>=0.8.0
-livekit-plugins-deepgram>=0.6.0   # Deepgram STT plugin for livekit-agents
-livekit-plugins-openai>=0.6.0     # Used for HF-compatible OpenAI-style LLM calls
+# ── LiveKit voice worker ───────────────────────────────────────────────────
+# Pinned below 1.0 because agent.py currently uses the 0.x WorkerOptions API.
+livekit>=0.17.0,<1.0.0
+livekit-agents>=0.8.0,<1.0.0
+livekit-plugins-deepgram>=0.6.0,<1.0.0
 
-# ── Speech-to-Text ────────────────────────────────────────────────────────────
-deepgram-sdk>=3.2.0
+# ── Speech-to-Text ─────────────────────────────────────────────────────────
+deepgram-sdk>=3.2.0,<4.0.0
 
-# ── Text-to-Speech (Kokoro via HF Inference) ──────────────────────────────────
-# The agent calls HF Inference TTS via raw HTTP; no extra SDK needed.
-# soundfile and numpy are used to decode the returned PCM/WAV bytes.
-soundfile>=0.12.1
-numpy>=1.26.0
+# ── Text-to-Speech audio decoding ──────────────────────────────────────────
+soundfile>=0.12.1,<1.0.0
+numpy>=1.26.0,<3.0.0
 
-# ── HTTP / async ──────────────────────────────────────────────────────────────
-requests>=2.31.0
-httpx>=0.27.0          # async HTTP for LLM + TTS calls
-aiofiles>=23.2.1       # async file I/O
+# ── HTTP / async ───────────────────────────────────────────────────────────
+httpx>=0.27.0,<1.0.0
+requests>=2.31.0,<3.0.0
+aiofiles>=23.2.1,<25.0.0
 
-# ── Utilities ─────────────────────────────────────────────────────────────────
-python-dotenv>=1.0.0   # load .env file into os.environ
+# ── Health/API surface ─────────────────────────────────────────────────────
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.30.0,<1.0.0
+
+# ── Utilities ──────────────────────────────────────────────────────────────
+python-dotenv>=1.0.0,<2.0.0
