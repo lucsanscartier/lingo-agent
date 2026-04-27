@@ -1,0 +1,1400 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LINGO Phone Agent API",
+    "version": "1.0.0",
+    "description": "The LINGO API allows you to programmatically deploy, configure, and interact with AI phone agents for small businesses. Each agent answers inbound calls 24/7, sends and receives SMS, maintains persistent caller memory via the Kirk memory system, and escalates to humans when needed.\n\nBase URL: https://api.lingo-agent.ai/v1\n\nAll requests require Bearer token authentication. Obtain your API key from the LINGO dashboard at https://app.lingo-agent.ai.",
+    "contact": {
+      "name": "LINGO Developer Support",
+      "url": "https://github.com/lucsanscartier/lingo-agent",
+      "email": "dev@lingo-agent.ai"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "x-logo": {
+      "url": "https://api.lingo-agent.ai/assets/logo.png"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.lingo-agent.ai/v1",
+      "description": "Production"
+    },
+    {
+      "url": "https://sandbox.lingo-agent.ai/v1",
+      "description": "Sandbox (test mode — no live calls)"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Agents",
+      "description": "Create, retrieve, and decommission phone agents"
+    },
+    {
+      "name": "Messaging",
+      "description": "Send messages to agents for agent-to-agent interaction"
+    },
+    {
+      "name": "Memory",
+      "description": "Caller memory powered by the Kirk memory system"
+    },
+    {
+      "name": "Transcripts",
+      "description": "Call and SMS transcripts"
+    },
+    {
+      "name": "Training",
+      "description": "Update agent instructions and knowledge"
+    }
+  ],
+  "paths": {
+    "/agents": {
+      "post": {
+        "operationId": "deployAgent",
+        "summary": "Deploy a new phone agent",
+        "description": "Provisions a new LINGO phone agent tied to a business. The agent immediately begins answering inbound calls on the provided phone number. If the phone number is not already a LINGO-managed number, it will be ported or a new number will be provisioned depending on the `phone_number` value provided.",
+        "tags": ["Agents"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeployAgentRequest"
+              },
+              "examples": {
+                "pizzeria": {
+                  "summary": "Local pizzeria",
+                  "value": {
+                    "business_name": "Tony's Pizzeria",
+                    "phone_number": "+14155551234",
+                    "system_prompt": "You are the friendly AI phone assistant for Tony's Pizzeria in San Francisco. You help customers place orders, check wait times, and answer questions about our menu. We are open Mon–Sat 11am–10pm and Sun 12pm–9pm. Our address is 425 Columbus Ave, SF. Always confirm the customer's order back to them before ending the call.",
+                    "escalation_email": "tony@tonyspizzeria.com",
+                    "plan": "pro",
+                    "timezone": "America/Los_Angeles",
+                    "language": "en-US",
+                    "voice": "nova",
+                    "escalation_triggers": ["upset customer", "refund request", "food safety complaint"],
+                    "sms_enabled": true,
+                    "voicemail_enabled": true
+                  }
+                },
+                "dental_office": {
+                  "summary": "Dental office starter plan",
+                  "value": {
+                    "business_name": "Bright Smiles Dental",
+                    "phone_number": "+13105559876",
+                    "system_prompt": "You are the AI receptionist for Bright Smiles Dental. You schedule appointments, confirm existing appointments, and answer general questions about our services. We accept Delta Dental and Blue Cross. New patients should be directed to arrive 15 minutes early. For dental emergencies, always escalate to a human immediately.",
+                    "escalation_email": "reception@brightsmilesdental.com",
+                    "plan": "starter"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent successfully deployed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "status": "active",
+                  "business_name": "Tony's Pizzeria",
+                  "phone_number": "+14155551234",
+                  "plan": "pro",
+                  "created_at": "2024-11-15T18:32:00Z",
+                  "updated_at": "2024-11-15T18:32:00Z",
+                  "voice": "nova",
+                  "language": "en-US",
+                  "timezone": "America/Los_Angeles",
+                  "sms_enabled": true,
+                  "voicemail_enabled": true,
+                  "stats": {
+                    "total_calls": 0,
+                    "total_sms": 0,
+                    "total_minutes": 0,
+                    "unique_callers": 0,
+                    "escalations": 0
+                  },
+                  "kirk_memory_id": "kmem_9aLp3rXwQ5uCyM8t",
+                  "webhook_url": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Phone number already assigned to another agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "phone_number_conflict",
+                  "message": "The phone number +14155551234 is already assigned to agent agt_3bNp7kLmW2xQs5r",
+                  "request_id": "req_aB3xY7pQ"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listAgents",
+        "summary": "List all agents",
+        "description": "Returns a paginated list of all phone agents associated with the authenticated account.",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "paused", "decommissioned"]
+            },
+            "description": "Filter by agent status"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Pagination cursor from previous response"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}": {
+      "get": {
+        "operationId": "getAgent",
+        "summary": "Get agent status and stats",
+        "description": "Retrieves full details, current status, and usage statistics for a specific agent.",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "status": "active",
+                  "business_name": "Tony's Pizzeria",
+                  "phone_number": "+14155551234",
+                  "plan": "pro",
+                  "created_at": "2024-11-01T10:00:00Z",
+                  "updated_at": "2024-11-15T14:22:00Z",
+                  "voice": "nova",
+                  "language": "en-US",
+                  "timezone": "America/Los_Angeles",
+                  "sms_enabled": true,
+                  "voicemail_enabled": true,
+                  "stats": {
+                    "total_calls": 312,
+                    "total_sms": 87,
+                    "total_minutes": 1024.5,
+                    "unique_callers": 145,
+                    "escalations": 14
+                  },
+                  "kirk_memory_id": "kmem_9aLp3rXwQ5uCyM8t",
+                  "webhook_url": "https://hooks.tonyspizzeria.com/lingo"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAgent",
+        "summary": "Update agent configuration",
+        "description": "Update one or more configuration fields on an existing agent. All fields are optional — only provided fields are updated.",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAgent",
+        "summary": "Decommission an agent",
+        "description": "Permanently decommissions a phone agent. The agent will stop answering calls immediately. Call history, transcripts, and Kirk memory are preserved for 90 days before deletion. This action cannot be undone.",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "Optional reason for decommissioning, stored for audit purposes",
+                    "maxLength": 500
+                  },
+                  "release_phone_number": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, releases the phone number back to the carrier pool. If false, the number is held for 30 days and can be reassigned."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent successfully decommissioned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "decommissioned"
+                    },
+                    "decommissioned_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "data_deletion_scheduled_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When transcripts and memory will be permanently deleted (90 days)"
+                    },
+                    "phone_number_released": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "status": "decommissioned",
+                  "decommissioned_at": "2024-11-15T18:45:00Z",
+                  "data_deletion_scheduled_at": "2025-02-13T18:45:00Z",
+                  "phone_number_released": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/message": {
+      "post": {
+        "operationId": "sendMessage",
+        "summary": "Send a message to an agent",
+        "description": "Sends a text message to a LINGO agent for agent-to-agent interaction. The agent will process the message using its full system prompt and Kirk memory context and return a response. This endpoint is designed for programmatic agent orchestration — e.g., a booking agent passing context to LINGO before a call, or a CRM agent querying LINGO for caller intent. Messages sent via this endpoint do NOT initiate phone calls.",
+        "tags": ["Messaging"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageRequest"
+              },
+              "examples": {
+                "booking_context": {
+                  "summary": "Booking agent pre-loading caller context",
+                  "value": {
+                    "role": "user",
+                    "content": "Customer John Smith (+14155559012) is about to call. He has a 3pm appointment on Nov 20 and may want to reschedule to the morning. His last visit was Oct 5. Please greet him by name and offer 9am or 10am on Nov 20.",
+                    "caller_id": "+14155559012",
+                    "metadata": {
+                      "source_agent": "booking-agent-v2",
+                      "crm_record_id": "contact_8xKp3"
+                    }
+                  }
+                },
+                "status_query": {
+                  "summary": "CRM agent querying caller sentiment",
+                  "value": {
+                    "role": "user",
+                    "content": "Summarize the last 3 interactions with caller +13105557890 and rate their overall sentiment.",
+                    "caller_id": "+13105557890"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message_id": "msg_4pRq8xNvL3wBmK7s",
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "role": "assistant",
+                  "content": "Context loaded. When John Smith calls, I will greet him by name, confirm his Nov 20 3pm appointment, and proactively offer the 9am or 10am slots. His last visit on Oct 5 involved a routine checkup — I'll reference that naturally if he mentions it.",
+                  "created_at": "2024-11-15T18:33:00Z",
+                  "tokens_used": 312,
+                  "caller_memory_updated": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/memory": {
+      "get": {
+        "operationId": "getMemory",
+        "summary": "Get caller memory for an agent",
+        "description": "Returns the Kirk memory store for an agent — a structured record of every caller the agent has interacted with, including preferences, history, sentiment, and any notes recorded during calls. Optionally filter by caller phone number.",
+        "tags": ["Memory"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          },
+          {
+            "name": "caller_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$"
+            },
+            "description": "E.164 phone number to filter memory for a specific caller"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Caller memory records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryResponse"
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "kirk_memory_id": "kmem_9aLp3rXwQ5uCyM8t",
+                  "total_callers": 145,
+                  "records": [
+                    {
+                      "caller_id": "+14155559012",
+                      "name": "John Smith",
+                      "first_contact": "2024-10-01T14:22:00Z",
+                      "last_contact": "2024-11-14T10:05:00Z",
+                      "total_interactions": 7,
+                      "sentiment_score": 0.82,
+                      "preferences": {
+                        "preferred_contact": "call",
+                        "language": "en",
+                        "notes": "Prefers morning appointments. Allergic to penicillin. Mentioned daughter Emma."
+                      },
+                      "tags": ["returning_customer", "high_value"],
+                      "escalation_history": []
+                    },
+                    {
+                      "caller_id": "+13105557890",
+                      "name": "Maria Garcia",
+                      "first_contact": "2024-10-15T09:12:00Z",
+                      "last_contact": "2024-11-10T16:30:00Z",
+                      "total_interactions": 3,
+                      "sentiment_score": 0.61,
+                      "preferences": {
+                        "preferred_contact": "sms",
+                        "language": "es",
+                        "notes": "Prefers Spanish. Has standing Thursday 2pm appointment."
+                      },
+                      "tags": ["returning_customer", "spanish_preferred"],
+                      "escalation_history": [
+                        {
+                          "escalated_at": "2024-11-10T16:35:00Z",
+                          "reason": "Billing dispute",
+                          "resolved": true
+                        }
+                      ]
+                    }
+                  ],
+                  "cursor": "eyJsYXN0X2lkIjoiK..."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteCallerMemory",
+        "summary": "Delete a caller's memory record",
+        "description": "Permanently deletes all stored memory for a specific caller. Required for GDPR/CCPA right-to-erasure requests. Must include `caller_id` as a query parameter.",
+        "tags": ["Memory"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          },
+          {
+            "name": "caller_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memory deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "caller_id": {
+                      "type": "string",
+                      "example": "+14155559012"
+                    },
+                    "records_deleted": {
+                      "type": "integer",
+                      "example": 7
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/transcripts": {
+      "get": {
+        "operationId": "getTranscripts",
+        "summary": "Get call and SMS transcripts",
+        "description": "Returns paginated call and SMS transcripts for the agent, ordered newest-first. Each transcript includes the full conversation, detected intent, entities extracted (names, dates, addresses), sentiment, and whether escalation occurred.",
+        "tags": ["Transcripts"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["call", "sms", "all"],
+              "default": "all"
+            },
+            "description": "Filter by interaction type"
+          },
+          {
+            "name": "caller_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\+[1-9]\\d{1,14}$"
+            },
+            "description": "Filter transcripts for a specific caller"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "Start datetime (ISO 8601)"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "description": "End datetime (ISO 8601)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of transcripts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptListResponse"
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "total": 312,
+                  "transcripts": [
+                    {
+                      "transcript_id": "txn_3mKp8wNqR5xBvL2s",
+                      "type": "call",
+                      "caller_id": "+14155559012",
+                      "caller_name": "John Smith",
+                      "started_at": "2024-11-14T10:05:00Z",
+                      "ended_at": "2024-11-14T10:08:42Z",
+                      "duration_seconds": 222,
+                      "escalated": false,
+                      "sentiment": "positive",
+                      "sentiment_score": 0.87,
+                      "intent": "appointment_booking",
+                      "entities": {
+                        "date": "2024-11-20",
+                        "time": "09:00",
+                        "service": "checkup"
+                      },
+                      "messages": [
+                        {
+                          "role": "assistant",
+                          "content": "Thank you for calling Bright Smiles Dental! This is LINGO, your AI assistant. How can I help you today?",
+                          "timestamp": "2024-11-14T10:05:02Z"
+                        },
+                        {
+                          "role": "user",
+                          "content": "Hi, I'd like to book a checkup for November 20th if you have anything in the morning.",
+                          "timestamp": "2024-11-14T10:05:09Z"
+                        },
+                        {
+                          "role": "assistant",
+                          "content": "Absolutely! We have 9am and 10am available on November 20th. Which would you prefer?",
+                          "timestamp": "2024-11-14T10:05:13Z"
+                        },
+                        {
+                          "role": "user",
+                          "content": "9am works perfectly.",
+                          "timestamp": "2024-11-14T10:05:18Z"
+                        },
+                        {
+                          "role": "assistant",
+                          "content": "Perfect! I've noted the 9am slot on November 20th for a checkup. You'll receive a confirmation SMS shortly. Is there anything else I can help you with?",
+                          "timestamp": "2024-11-14T10:05:22Z"
+                        }
+                      ],
+                      "recording_url": "https://recordings.lingo-agent.ai/txn_3mKp8wNqR5xBvL2s.mp3"
+                    }
+                  ],
+                  "cursor": "eyJsYXN0X2lkIjoiK..."
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/train": {
+      "post": {
+        "operationId": "trainAgent",
+        "summary": "Update agent instructions",
+        "description": "Updates the agent's system prompt, adds knowledge base entries, or adjusts behavioral settings. Changes take effect immediately for new calls. Ongoing calls are not affected.",
+        "tags": ["Training"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainAgentRequest"
+              },
+              "examples": {
+                "update_hours": {
+                  "summary": "Update business hours in system prompt",
+                  "value": {
+                    "system_prompt": "You are the AI assistant for Tony's Pizzeria. We are now open Mon–Sun 11am–11pm including holidays. Our new holiday special: 20% off all orders over $30 in December.",
+                    "change_summary": "Updated hours to 7 days/week and added December holiday promotion"
+                  }
+                },
+                "add_knowledge": {
+                  "summary": "Add FAQ knowledge entries",
+                  "value": {
+                    "knowledge_entries": [
+                      {
+                        "question": "Do you offer gluten-free options?",
+                        "answer": "Yes! We offer gluten-free crust for an additional $2. Please inform us of any allergies when ordering."
+                      },
+                      {
+                        "question": "What are your delivery zones?",
+                        "answer": "We deliver within 5 miles of our Columbus Ave location. Delivery fee is $3.99, free for orders over $40."
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Training update accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainAgentResponse"
+                },
+                "example": {
+                  "agent_id": "agt_7xKp2mNqR4wBvL9s",
+                  "training_id": "trn_2nRm5vKpL8wBxQ9s",
+                  "status": "applied",
+                  "applied_at": "2024-11-15T19:00:00Z",
+                  "change_summary": "Updated hours to 7 days/week and added December holiday promotion",
+                  "version": 4
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/pause": {
+      "post": {
+        "operationId": "pauseAgent",
+        "summary": "Pause an agent",
+        "description": "Temporarily pauses an agent. Inbound calls will be forwarded to the configured escalation number or voicemail. Useful for scheduled maintenance windows or when a human needs to take over temporarily.",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resume_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 datetime to automatically resume. If omitted, must resume manually."
+                  },
+                  "forward_to": {
+                    "type": "string",
+                    "pattern": "^\\+[1-9]\\d{1,14}$",
+                    "description": "Forward calls to this number while paused. Defaults to escalation contact."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent paused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent_id": { "type": "string" },
+                    "status": { "type": "string", "example": "paused" },
+                    "paused_at": { "type": "string", "format": "date-time" },
+                    "resume_at": { "type": "string", "format": "date-time", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/resume": {
+      "post": {
+        "operationId": "resumeAgent",
+        "summary": "Resume a paused agent",
+        "tags": ["Agents"],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AgentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent resumed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "agent_id": { "type": "string" },
+                    "status": { "type": "string", "example": "active" },
+                    "resumed_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "API key obtained from the LINGO dashboard. Pass as `Authorization: Bearer <your-api-key>`."
+      }
+    },
+    "parameters": {
+      "AgentId": {
+        "name": "agent_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^agt_[a-zA-Z0-9]{16}$",
+          "example": "agt_7xKp2mNqR4wBvL9s"
+        },
+        "description": "Unique agent identifier (prefixed with `agt_`)"
+      }
+    },
+    "schemas": {
+      "DeployAgentRequest": {
+        "type": "object",
+        "required": ["business_name", "phone_number", "system_prompt", "escalation_email", "plan"],
+        "properties": {
+          "business_name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Legal or trade name of the business",
+            "example": "Tony's Pizzeria"
+          },
+          "phone_number": {
+            "type": "string",
+            "pattern": "^\\+[1-9]\\d{1,14}$",
+            "description": "E.164 format phone number. Use `+new` to provision a new LINGO number.",
+            "example": "+14155551234"
+          },
+          "system_prompt": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 8000,
+            "description": "The agent's core instructions. Describe the business, tone, hours, capabilities, and any rules the agent must follow."
+          },
+          "escalation_email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address that receives escalation notifications when the agent transfers to a human"
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["burner", "starter", "pro"],
+            "description": "Subscription plan. `burner` ($9/mo): 60 min/mo, voice only. `starter` ($29/mo): 300 min/mo, voice + SMS. `pro` ($79/mo): unlimited*, voice + SMS + priority routing."
+          },
+          "timezone": {
+            "type": "string",
+            "default": "America/New_York",
+            "description": "IANA timezone for the business (affects scheduling and time references in calls)",
+            "example": "America/Los_Angeles"
+          },
+          "language": {
+            "type": "string",
+            "default": "en-US",
+            "description": "BCP 47 language tag for the agent's primary language",
+            "example": "en-US"
+          },
+          "voice": {
+            "type": "string",
+            "enum": ["nova", "alloy", "echo", "fable", "onyx", "shimmer"],
+            "default": "nova",
+            "description": "TTS voice profile for the agent"
+          },
+          "escalation_phone": {
+            "type": "string",
+            "pattern": "^\\+[1-9]\\d{1,14}$",
+            "description": "Phone number to transfer calls when escalation is triggered. If omitted, escalation is email-only."
+          },
+          "escalation_triggers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Natural language phrases or topics that trigger human escalation",
+            "example": ["upset customer", "refund request", "legal threat"]
+          },
+          "sms_enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow the agent to send and receive SMS (requires starter or pro plan)"
+          },
+          "voicemail_enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Record voicemail if call is not answered within 20 seconds"
+          },
+          "webhook_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS URL to receive real-time event webhooks (call.started, call.ended, escalation.triggered, sms.received)"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Arbitrary key-value metadata attached to the agent (useful for CRM IDs, partner tracking, etc.)"
+          }
+        }
+      },
+      "UpdateAgentRequest": {
+        "type": "object",
+        "properties": {
+          "business_name": { "type": "string" },
+          "system_prompt": { "type": "string", "maxLength": 8000 },
+          "escalation_email": { "type": "string", "format": "email" },
+          "escalation_phone": { "type": "string" },
+          "escalation_triggers": { "type": "array", "items": { "type": "string" } },
+          "voice": { "type": "string", "enum": ["nova", "alloy", "echo", "fable", "onyx", "shimmer"] },
+          "sms_enabled": { "type": "boolean" },
+          "voicemail_enabled": { "type": "boolean" },
+          "webhook_url": { "type": "string", "format": "uri" },
+          "plan": { "type": "string", "enum": ["burner", "starter", "pro"] },
+          "metadata": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "AgentResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "example": "agt_7xKp2mNqR4wBvL9s"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "paused", "decommissioned", "provisioning"],
+            "description": "`provisioning` is a transient state during initial setup (usually < 30s)"
+          },
+          "business_name": { "type": "string" },
+          "phone_number": { "type": "string" },
+          "plan": { "type": "string", "enum": ["burner", "starter", "pro"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "voice": { "type": "string" },
+          "language": { "type": "string" },
+          "timezone": { "type": "string" },
+          "sms_enabled": { "type": "boolean" },
+          "voicemail_enabled": { "type": "boolean" },
+          "escalation_email": { "type": "string" },
+          "escalation_phone": { "type": "string", "nullable": true },
+          "webhook_url": { "type": "string", "nullable": true },
+          "kirk_memory_id": {
+            "type": "string",
+            "description": "Identifier for this agent's Kirk memory store",
+            "example": "kmem_9aLp3rXwQ5uCyM8t"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/AgentStats"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          }
+        }
+      },
+      "AgentStats": {
+        "type": "object",
+        "properties": {
+          "total_calls": { "type": "integer" },
+          "total_sms": { "type": "integer" },
+          "total_minutes": { "type": "number", "format": "float" },
+          "unique_callers": { "type": "integer" },
+          "escalations": { "type": "integer" },
+          "avg_call_duration_seconds": { "type": "number", "format": "float" },
+          "satisfaction_score": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1,
+            "nullable": true,
+            "description": "Average sentiment-derived satisfaction score across all calls (0–1)"
+          }
+        }
+      },
+      "AgentListResponse": {
+        "type": "object",
+        "properties": {
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentResponse"
+            }
+          },
+          "total": { "type": "integer" },
+          "cursor": { "type": "string", "nullable": true }
+        }
+      },
+      "MessageRequest": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "system"],
+            "default": "user",
+            "description": "`user` for a caller-perspective message; `system` for a privileged instruction injection"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "The message content"
+          },
+          "caller_id": {
+            "type": "string",
+            "pattern": "^\\+[1-9]\\d{1,14}$",
+            "description": "If provided, the agent will load Kirk memory for this caller and incorporate it into its response"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Optional session ID to continue a previous conversation thread"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Arbitrary metadata (e.g., source agent ID, CRM record ID)"
+          }
+        }
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message_id": { "type": "string" },
+          "agent_id": { "type": "string" },
+          "session_id": { "type": "string" },
+          "role": { "type": "string", "example": "assistant" },
+          "content": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "tokens_used": { "type": "integer" },
+          "caller_memory_updated": {
+            "type": "boolean",
+            "description": "Whether the agent updated Kirk memory based on this interaction"
+          }
+        }
+      },
+      "MemoryRecord": {
+        "type": "object",
+        "properties": {
+          "caller_id": { "type": "string" },
+          "name": { "type": "string", "nullable": true },
+          "first_contact": { "type": "string", "format": "date-time" },
+          "last_contact": { "type": "string", "format": "date-time" },
+          "total_interactions": { "type": "integer" },
+          "sentiment_score": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "preferred_contact": { "type": "string", "enum": ["call", "sms"] },
+              "language": { "type": "string" },
+              "notes": { "type": "string" }
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "escalation_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "escalated_at": { "type": "string", "format": "date-time" },
+                "reason": { "type": "string" },
+                "resolved": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      },
+      "MemoryResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "kirk_memory_id": { "type": "string" },
+          "total_callers": { "type": "integer" },
+          "records": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MemoryRecord" }
+          },
+          "cursor": { "type": "string", "nullable": true }
+        }
+      },
+      "TranscriptMessage": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string", "enum": ["assistant", "user"] },
+          "content": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Transcript": {
+        "type": "object",
+        "properties": {
+          "transcript_id": { "type": "string" },
+          "type": { "type": "string", "enum": ["call", "sms"] },
+          "caller_id": { "type": "string" },
+          "caller_name": { "type": "string", "nullable": true },
+          "started_at": { "type": "string", "format": "date-time" },
+          "ended_at": { "type": "string", "format": "date-time", "nullable": true },
+          "duration_seconds": { "type": "integer", "nullable": true },
+          "escalated": { "type": "boolean" },
+          "sentiment": {
+            "type": "string",
+            "enum": ["positive", "neutral", "negative"]
+          },
+          "sentiment_score": { "type": "number", "format": "float" },
+          "intent": { "type": "string", "nullable": true },
+          "entities": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TranscriptMessage" }
+          },
+          "recording_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Signed URL to the call recording MP3, valid for 7 days"
+          }
+        }
+      },
+      "TranscriptListResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "total": { "type": "integer" },
+          "transcripts": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Transcript" }
+          },
+          "cursor": { "type": "string", "nullable": true }
+        }
+      },
+      "TrainAgentRequest": {
+        "type": "object",
+        "properties": {
+          "system_prompt": {
+            "type": "string",
+            "maxLength": 8000,
+            "description": "Replace the agent's full system prompt. Omit to leave unchanged."
+          },
+          "system_prompt_patch": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Append or modify the system prompt without replacing it entirely. Useful for adding seasonal context."
+          },
+          "knowledge_entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["question", "answer"],
+              "properties": {
+                "question": { "type": "string" },
+                "answer": { "type": "string" },
+                "tags": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "description": "FAQ-style knowledge entries added to the agent's retrieval store"
+          },
+          "escalation_triggers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Replace the full escalation triggers list"
+          },
+          "change_summary": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Human-readable description of what was changed (stored in training history)"
+          }
+        }
+      },
+      "TrainAgentResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "training_id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["applied", "queued"],
+            "description": "`applied` means live immediately. `queued` means the agent is mid-call and the update will apply when the call ends."
+          },
+          "applied_at": { "type": "string", "format": "date-time", "nullable": true },
+          "change_summary": { "type": "string" },
+          "version": {
+            "type": "integer",
+            "description": "Monotonically increasing version number for this agent's instruction set"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "message"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Machine-readable error code",
+            "example": "invalid_phone_number"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error description"
+          },
+          "field": {
+            "type": "string",
+            "nullable": true,
+            "description": "Field that caused validation error, if applicable"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Unique request ID for support queries"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request — missing or invalid parameters",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "error": "validation_error",
+              "message": "phone_number must be in E.164 format (e.g. +14155551234)",
+              "field": "phone_number",
+              "request_id": "req_xK3pM7nQ"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid API key",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "error": "unauthorized",
+              "message": "Invalid or expired API key. Generate a new key at https://app.lingo-agent.ai/settings/api",
+              "request_id": "req_aB3xY7pQ"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Agent not found or not owned by this account",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": {
+              "error": "agent_not_found",
+              "message": "No agent found with ID agt_7xKp2mNqR4wBvL9s",
+              "request_id": "req_cD5zW9rS"
+            }
+          }
+        }
+      },
+      "UnprocessableEntity": {
+        "description": "Request was well-formed but failed business logic validation",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      }
+    }
+  }
+}
