@@ -1,0 +1,339 @@
+{
+  "naptha_module_version": "0.3",
+  "id": "lingo-phone-agent",
+  "name": "LINGO Phone Agent",
+  "version": "1.0.0",
+  "description": "A Naptha module that wraps the LINGO AI phone agent service, enabling multi-agent workflows to deploy, query, and interact with business phone agents. This module exposes LINGO's full API surface — call handling, caller memory (Kirk system), transcripts, and agent-to-agent messaging — as callable Naptha tools.",
+  "module_type": "tool",
+  "author": {
+    "name": "LINGO",
+    "github": "https://github.com/lucsanscartier/lingo-agent",
+    "contact": "dev@lingo-agent.ai"
+  },
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/lucsanscartier/lingo-agent",
+    "branch": "main",
+    "module_path": "naptha/"
+  },
+  "license": "MIT",
+  "tags": ["voice-ai", "telephony", "phone-agent", "sms", "memory", "small-business"],
+  "categories": ["communication", "tool", "external-service"],
+  "runtime": {
+    "type": "python",
+    "python_version": ">=3.10",
+    "entry_point": "naptha/lingo_module.py",
+    "class": "LingoModule"
+  },
+  "dependencies": {
+    "python": [
+      "httpx>=0.27.0",
+      "pydantic>=2.0.0",
+      "naptha-sdk>=0.3.0"
+    ]
+  },
+  "environment_variables": {
+    "LINGO_API_KEY": {
+      "required": true,
+      "description": "LINGO API key — obtain from https://app.lingo-agent.ai/settings/api",
+      "secret": true
+    },
+    "LINGO_BASE_URL": {
+      "required": false,
+      "default": "https://api.lingo-agent.ai/v1",
+      "description": "Override for sandbox testing: https://sandbox.lingo-agent.ai/v1"
+    }
+  },
+  "tools": [
+    {
+      "name": "deploy_agent",
+      "description": "Deploy a new LINGO phone agent for a business. The agent immediately begins answering inbound calls on the specified phone number.",
+      "input_schema": {
+        "type": "object",
+        "required": ["business_name", "phone_number", "system_prompt", "escalation_email", "plan"],
+        "properties": {
+          "business_name": {
+            "type": "string",
+            "description": "Business name (e.g. 'Tony\\'s Pizzeria')"
+          },
+          "phone_number": {
+            "type": "string",
+            "description": "E.164 phone number (e.g. '+14155551234') or '+new' to provision a fresh number"
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "Natural language instructions for the agent — describe the business, tone, hours, and capabilities"
+          },
+          "escalation_email": {
+            "type": "string",
+            "description": "Email address for escalation notifications"
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["burner", "starter", "pro"],
+            "description": "Subscription plan (burner=$9/mo, starter=$29/mo, pro=$79/mo)"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA timezone (e.g. 'America/New_York')",
+            "default": "America/New_York"
+          },
+          "voice": {
+            "type": "string",
+            "enum": ["nova", "alloy", "echo", "fable", "onyx", "shimmer"],
+            "default": "nova"
+          },
+          "sms_enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "status": { "type": "string" },
+          "phone_number": { "type": "string" },
+          "kirk_memory_id": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "get_agent",
+      "description": "Retrieve status, configuration, and usage statistics for a LINGO phone agent.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "LINGO agent ID (prefixed with 'agt_')"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "description": "Full AgentResponse including stats and Kirk memory ID"
+      }
+    },
+    {
+      "name": "send_message",
+      "description": "Send a text message to a LINGO agent for agent-to-agent interaction. The agent responds using its full context — ideal for pre-call briefing, querying caller history, or injecting real-time context.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id", "content"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "content": {
+            "type": "string",
+            "description": "The message to send to the agent"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "system"],
+            "default": "user"
+          },
+          "caller_id": {
+            "type": "string",
+            "description": "Optional: load Kirk memory for this caller's phone number"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional key-value metadata (e.g., source agent name, CRM record ID)"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "message_id": { "type": "string" },
+          "content": { "type": "string" },
+          "caller_memory_updated": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "name": "get_memory",
+      "description": "Read the Kirk caller memory store for a LINGO agent. Returns structured records of every caller's history, preferences, and sentiment.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "caller_id": {
+            "type": "string",
+            "description": "Filter by specific caller E.164 phone number"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 50,
+            "maximum": 200
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total_callers": { "type": "integer" },
+          "records": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "caller_id": { "type": "string" },
+                "name": { "type": "string" },
+                "sentiment_score": { "type": "number" },
+                "total_interactions": { "type": "integer" },
+                "preferences": { "type": "object" },
+                "tags": { "type": "array" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_transcripts",
+      "description": "Retrieve call and SMS transcripts for a LINGO agent. Each transcript includes the full conversation, detected intent, extracted entities, and sentiment score.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["call", "sms", "all"],
+            "default": "all"
+          },
+          "caller_id": {
+            "type": "string",
+            "description": "Filter by caller phone number"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start datetime (ISO 8601)"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End datetime (ISO 8601)"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 20,
+            "maximum": 100
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "transcripts": { "type": "array" }
+        }
+      }
+    },
+    {
+      "name": "train_agent",
+      "description": "Update a LINGO agent's system prompt, add knowledge base entries, or adjust escalation triggers. Changes take effect immediately for new calls.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "system_prompt": {
+            "type": "string",
+            "description": "Full replacement system prompt (omit to keep existing)"
+          },
+          "system_prompt_patch": {
+            "type": "string",
+            "description": "Additive patch to append to the existing prompt"
+          },
+          "knowledge_entries": {
+            "type": "array",
+            "description": "FAQ-style entries to add to the knowledge store",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question": { "type": "string" },
+                "answer": { "type": "string" }
+              }
+            }
+          },
+          "change_summary": {
+            "type": "string",
+            "description": "Short description of the update (stored in training history)"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "training_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["applied", "queued"] },
+          "version": { "type": "integer" }
+        }
+      }
+    },
+    {
+      "name": "decommission_agent",
+      "description": "Permanently decommission a LINGO phone agent. The agent stops answering calls immediately. Data is retained for 90 days.",
+      "input_schema": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": { "type": "string" },
+          "reason": {
+            "type": "string",
+            "description": "Optional decommission reason (stored for audit)"
+          },
+          "release_phone_number": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "decommissioned_at": { "type": "string" },
+          "data_deletion_scheduled_at": { "type": "string" }
+        }
+      }
+    }
+  ],
+  "example_workflows": [
+    {
+      "name": "Booking Agent Integration",
+      "description": "A Naptha orchestrator deploys a LINGO phone agent for a dental practice. A booking agent pre-loads caller context before each call and writes appointment confirmations to a calendar after each call ends.",
+      "steps": [
+        "deploy_agent — spin up phone agent with dental office system prompt",
+        "booking_agent sends context via send_message before caller is expected",
+        "After call ends, booking_agent calls get_transcripts to extract appointment details",
+        "Booking agent writes appointment to Google Calendar via separate Naptha module"
+      ]
+    },
+    {
+      "name": "CRM Sync Agent",
+      "description": "A CRM agent polls LINGO transcripts hourly, extracts structured data (name, intent, entities), and upserts records into a CRM.",
+      "steps": [
+        "CRM agent calls get_transcripts with from=last_sync_time",
+        "For each transcript, agent parses intent and entities",
+        "CRM agent upserts contact and interaction record via CRM Naptha module",
+        "CRM agent calls send_message to update Kirk memory with CRM record ID"
+      ]
+    }
+  ],
+  "naptha": {
+    "hub_url": "https://hub.naptha.ai/modules/lingo-phone-agent",
+    "node_compatible": true,
+    "multi_agent_compatible": true,
+    "required_node_version": ">=0.3.0",
+    "memory_requirements_mb": 64,
+    "stateless": true,
+    "supports_streaming": false
+  }
+}
