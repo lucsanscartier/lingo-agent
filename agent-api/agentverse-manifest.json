@@ -1,0 +1,192 @@
+{
+  "$schema": "https://agentverse.ai/schemas/manifest/v2.json",
+  "manifest_version": "2.0",
+  "agent": {
+    "name": "LINGO Phone Agent Service",
+    "address": "agent1qvlingo0phoneagentsvc2024xkp7mnqr4wbvl9skirk",
+    "description": "Deploy AI phone agents that answer calls 24/7 for any business. LINGO handles inbound voice calls, outbound SMS, and maintains persistent caller memory (Kirk system) so your business never misses a call — even at 2am. Each agent is fully configurable via natural-language system prompts and integrates with your existing CRM, booking, or workflow tools via REST webhooks.",
+    "version": "1.0.0",
+    "category": "communication",
+    "subcategory": "voice-ai",
+    "author": {
+      "name": "LINGO",
+      "url": "https://github.com/lucsanscartier/lingo-agent",
+      "email": "dev@lingo-agent.ai"
+    },
+    "homepage": "https://www.perplexity.ai/computer/a/lingo-ai-phone-agents-uf7YK78jSo2fy2KjyMS.ag",
+    "documentation": "https://github.com/lucsanscartier/lingo-agent/blob/main/docs/api.md",
+    "license": "MIT",
+    "created_at": "2024-11-01T00:00:00Z",
+    "updated_at": "2024-11-15T00:00:00Z"
+  },
+  "service": {
+    "type": "hybrid",
+    "protocols": ["REST", "uAgent"],
+    "endpoints": {
+      "rest": {
+        "base_url": "https://api.lingo-agent.ai/v1",
+        "openapi_spec": "https://api.lingo-agent.ai/v1/openapi.json",
+        "health_check": "https://api.lingo-agent.ai/v1/health",
+        "authentication": {
+          "type": "bearer_token",
+          "token_url": "https://app.lingo-agent.ai/settings/api",
+          "header": "Authorization",
+          "format": "Bearer {token}"
+        }
+      },
+      "uagent": {
+        "address": "agent1qvlingo0phoneagentsvc2024xkp7mnqr4wbvl9skirk",
+        "almanac_registered": true,
+        "protocols": ["lingo-v1-query", "lingo-v1-deploy"],
+        "message_schema": "https://api.lingo-agent.ai/schemas/uagent/messages.proto"
+      }
+    }
+  },
+  "capabilities": [
+    {
+      "id": "inbound_calls",
+      "name": "Inbound Call Handling",
+      "description": "Answers inbound voice calls 24/7 using configurable AI system prompts. Supports call routing, IVR-style menus, appointment booking, order taking, FAQs, and custom business logic.",
+      "input_modalities": ["voice"],
+      "output_modalities": ["voice"],
+      "realtime": true
+    },
+    {
+      "id": "outbound_sms",
+      "name": "Outbound SMS",
+      "description": "Sends confirmation texts, follow-ups, reminders, and custom messages to callers. Two-way SMS threads are fully supported. Requires starter or pro plan.",
+      "input_modalities": ["text"],
+      "output_modalities": ["sms"],
+      "realtime": false
+    },
+    {
+      "id": "caller_memory",
+      "name": "Caller Memory (Kirk System)",
+      "description": "Persistent per-caller memory store. Tracks caller name, preferences, interaction history, sentiment trends, and custom notes. Memory is updated automatically after every call and SMS, and is accessible via API for CRM sync.",
+      "input_modalities": ["structured_data"],
+      "output_modalities": ["structured_data"],
+      "realtime": false
+    },
+    {
+      "id": "escalation",
+      "name": "Human Escalation",
+      "description": "Detects escalation conditions (e.g. upset caller, refund request, medical emergency) and transfers the call or sends an immediate notification to a configured human contact. Escalations are logged and retrievable.",
+      "input_modalities": ["voice", "text"],
+      "output_modalities": ["voice", "email", "sms"],
+      "realtime": true
+    },
+    {
+      "id": "agent_messaging",
+      "name": "Agent-to-Agent Messaging",
+      "description": "Accepts structured messages from other agents (via REST or uAgent protocol) for context injection, pre-call briefing, or post-call data retrieval. Enables tight integration with booking agents, CRM agents, and workflow orchestrators.",
+      "input_modalities": ["text", "structured_data"],
+      "output_modalities": ["text", "structured_data"],
+      "realtime": false
+    },
+    {
+      "id": "transcripts",
+      "name": "Call Transcript Retrieval",
+      "description": "Full conversation transcripts with entity extraction, intent classification, and sentiment scores. Accessible via REST API for downstream processing by analytics agents or CRM sync agents.",
+      "input_modalities": ["structured_data"],
+      "output_modalities": ["structured_data"],
+      "realtime": false
+    }
+  ],
+  "pricing": {
+    "currency": "USD",
+    "billing_cycle": "monthly",
+    "plans": {
+      "burner": {
+        "price": "9 USD/month",
+        "description": "Solo operators and test deployments. Includes 60 min/mo of inbound voice.",
+        "limits": {
+          "call_minutes": 60,
+          "sms": 0,
+          "agents": 1,
+          "kirk_memory_records": 500
+        },
+        "overage": {
+          "call_minutes": "0.08 USD/min"
+        }
+      },
+      "starter": {
+        "price": "29 USD/month",
+        "description": "Small businesses with moderate call volume. Includes 300 min/mo of voice and 200 SMS.",
+        "limits": {
+          "call_minutes": 300,
+          "sms": 200,
+          "agents": 3,
+          "kirk_memory_records": 5000
+        },
+        "overage": {
+          "call_minutes": "0.06 USD/min",
+          "sms": "0.01 USD/message"
+        }
+      },
+      "pro": {
+        "price": "79 USD/month",
+        "description": "High-volume businesses and agencies. Unlimited voice minutes (fair use: 2000 min/mo), unlimited SMS, priority routing, and webhook support.",
+        "limits": {
+          "call_minutes": "unlimited (fair use 2000/mo)",
+          "sms": "unlimited",
+          "agents": 10,
+          "kirk_memory_records": "unlimited"
+        },
+        "overage": {
+          "call_minutes": "0.04 USD/min above 2000"
+        },
+        "features": [
+          "priority_routing",
+          "webhook_support",
+          "custom_voice",
+          "advanced_analytics",
+          "sla_99_9"
+        ]
+      }
+    },
+    "per_call_estimate": "~0.05 USD/min (blended average across plans)",
+    "free_trial": {
+      "available": true,
+      "duration_days": 14,
+      "description": "Full pro-plan access for 14 days, no credit card required"
+    }
+  },
+  "tags": [
+    "voice-ai",
+    "phone-agent",
+    "small-business",
+    "saas",
+    "telephony",
+    "sms",
+    "caller-memory",
+    "crm",
+    "booking",
+    "receptionist",
+    "24-7",
+    "escalation",
+    "fetch-ai",
+    "uagent"
+  ],
+  "integrations": {
+    "native": ["Twilio", "SignalWire"],
+    "webhooks": true,
+    "crm_compatible": ["HubSpot", "Salesforce", "Zoho CRM", "Pipedrive"],
+    "calendar_compatible": ["Google Calendar", "Calendly", "Acuity Scheduling"],
+    "agent_protocols": ["REST", "uAgent", "OpenAI Function Calling", "Naptha"]
+  },
+  "trust_signals": {
+    "soc2_compliant": false,
+    "gdpr_compliant": true,
+    "ccpa_compliant": true,
+    "data_residency": "US (default), EU (pro plan)",
+    "recording_consent": "Automated disclosure at call start",
+    "right_to_erasure": "Supported via DELETE /agents/{id}/memory?caller_id="
+  },
+  "agentverse": {
+    "profile_url": "https://agentverse.ai/agents/lingo-phone-agent-service",
+    "searchable": true,
+    "featured": false,
+    "approval_status": "pending",
+    "submitted_at": "2024-11-15T00:00:00Z"
+  }
+}
