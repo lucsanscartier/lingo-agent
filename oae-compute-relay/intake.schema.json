@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OAE Compute Relay Job Intake",
+  "type": "object",
+  "required": ["job_id", "paid", "credit_cad", "task_type", "task", "output_format", "max_compute_cost_cad", "privacy_level"],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Unique job identifier."
+    },
+    "paid": {
+      "type": "boolean",
+      "description": "Must be true before execution, except quote/probe mode."
+    },
+    "stripe_payment_intent": {
+      "type": "string",
+      "description": "Stripe PaymentIntent ID when available."
+    },
+    "stripe_checkout_session": {
+      "type": "string",
+      "description": "Stripe Checkout Session ID when available."
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "credit_cad": {
+      "type": "number",
+      "minimum": 0
+    },
+    "task_type": {
+      "type": "string",
+      "enum": ["text", "code", "hf-search", "llm", "gpu"]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 3
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["markdown", "json", "code", "file"]
+    },
+    "max_compute_cost_cad": {
+      "type": "number",
+      "minimum": 0
+    },
+    "privacy_level": {
+      "type": "string",
+      "enum": ["public", "non_sensitive", "private", "sensitive", "unknown"]
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "method": {"type": "string", "enum": ["none", "email", "drive", "github", "manual"]},
+        "target": {"type": "string"}
+      }
+    }
+  },
+  "additionalProperties": true
+}
