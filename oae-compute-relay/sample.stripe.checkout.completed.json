@@ -1,0 +1,32 @@
+{
+  "id": "evt_oae_demo_compute_credit_paid",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "created": 1779925000,
+  "data": {
+    "object": {
+      "id": "cs_test_oae_demo_001",
+      "object": "checkout.session",
+      "status": "complete",
+      "payment_status": "paid",
+      "amount_total": 500,
+      "currency": "cad",
+      "customer_email": "agent-buyer@example.com",
+      "payment_intent": "pi_oae_demo_001",
+      "payment_link": "plink_1TbqhQFRuWOMBXuRuZgJzpZW",
+      "metadata": {
+        "oae_product": "compute_relay_credit",
+        "product_id": "prod_Ub2m82KsbFXy3T",
+        "price_id": "price_1TbqgzFRuWOMBXuRYwxGaDQW",
+        "job_id": "a2a-demo-001",
+        "task_type": "text",
+        "task": "Create a short machine-readable summary of why OAE Compute Relay is useful for agent-to-agent compute.",
+        "output_format": "markdown",
+        "privacy_level": "non_sensitive",
+        "max_compute_cost_cad": "0.25",
+        "delivery_method": "manual",
+        "delivery_target": "agent-buyer@example.com"
+      }
+    }
+  }
+}
