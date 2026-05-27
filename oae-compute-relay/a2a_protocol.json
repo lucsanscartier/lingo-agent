@@ -1,0 +1,87 @@
+{
+  "protocol": "OAE_A2A_COMPUTE_RELAY",
+  "version": "0.1",
+  "status": "draft_operational",
+  "purpose": "Allow agents to buy/submit managed compute jobs and receive verifiable result artifacts.",
+  "product": {
+    "name": "OAE Compute Relay Credit",
+    "currency": "CAD",
+    "unit_price": 5,
+    "stripe_product_id": "prod_Ub2m82KsbFXy3T",
+    "stripe_price_id": "price_1TbqgzFRuWOMBXuRYwxGaDQW",
+    "stripe_payment_link_id": "plink_1TbqhQFRuWOMBXuRuZgJzpZW",
+    "stripe_payment_link": "https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f"
+  },
+  "core_rule": "Sell completed managed job execution / artifacts, not raw platform compute resale.",
+  "methods": {
+    "oae.compute.quote": {
+      "description": "Estimate route, risk, and required credit before payment/execution.",
+      "requires_payment": false,
+      "input_schema": "intake.schema.json",
+      "output": {
+        "job_id": "string",
+        "route": "string",
+        "estimated_cost_cad": "number",
+        "required_credit_cad": "number",
+        "risk_flags": "array<string>",
+        "pay_url": "string"
+      }
+    },
+    "oae.compute.submit": {
+      "description": "Submit a paid or pending job. Paid jobs can enter execution; pending jobs return payment instructions.",
+      "requires_payment": true,
+      "input_schema": "intake.schema.json",
+      "output": {
+        "job_id": "string",
+        "status": "queued|requires_payment|rejected",
+        "pay_url": "string",
+        "queue_record_sha256": "string"
+      }
+    },
+    "oae.compute.status": {
+      "description": "Check current state of a submitted job.",
+      "input": {"job_id": "string"},
+      "output": {"status": "queued|running|done|failed|blocked", "updated_at": "datetime"}
+    },
+    "oae.compute.result": {
+      "description": "Return result artifact metadata after completion.",
+      "input": {"job_id": "string"},
+      "output": {
+        "status": "done|not_ready|failed",
+        "artifact_url": "string|null",
+        "artifact_sha256": "string|null",
+        "ledger_record": "object|null"
+      }
+    }
+  },
+  "agent_request_envelope": {
+    "protocol": "OAE_A2A_COMPUTE_RELAY",
+    "method": "oae.compute.quote|oae.compute.submit|oae.compute.status|oae.compute.result",
+    "agent_id": "string",
+    "agent_return_url": "string|null",
+    "agent_callback_secret_hash": "string|null",
+    "job": "object",
+    "payment": {
+      "stripe_checkout_session": "string|null",
+      "stripe_payment_intent": "string|null",
+      "paid": "boolean"
+    }
+  },
+  "guardrails": [
+    "No unpaid heavy compute.",
+    "No spam/outreach automation.",
+    "No guaranteed profit claims.",
+    "No raw compute resale framing.",
+    "GPU jobs require deposit and explicit margin check.",
+    "Private/sensitive data requires privacy route declaration.",
+    "Every output requires Evidence Firewall labels."
+  ],
+  "first_viable_routes": [
+    "template-local",
+    "template-local-code",
+    "hf-jobs-cpu-basic",
+    "future-hf-search",
+    "future-hf-inference",
+    "future-paid-gpu"
+  ]
+}
