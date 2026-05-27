@@ -1,0 +1,15 @@
+[
+  {
+    "job_id": "demo-001",
+    "paid": true,
+    "product": "HF Opportunity Report",
+    "price_cad": 19,
+    "customer_email": "demo@example.com",
+    "input": {
+      "idea": "I want to make money with a Hugging Face Space",
+      "target_customer": "small business owners",
+      "budget": "free or cheap compute",
+      "tone": "clear, practical, upbeat"
+    }
+  }
+]
