@@ -1,0 +1,23 @@
+[
+  {
+    "job_id": "compute-demo-001",
+    "paid": true,
+    "credit_cad": 5,
+    "customer_email": "demo@example.com",
+    "task_type": "text",
+    "task": "Create a concise product summary for an AI compute relay that sells managed AI job runs.",
+    "output_format": "markdown",
+    "max_compute_cost_cad": 0.25,
+    "privacy_level": "non_sensitive"
+  },
+  {
+    "job_id": "compute-demo-002",
+    "paid": false,
+    "credit_cad": 0,
+    "task_type": "code",
+    "task": "Generate a small Python CLI skeleton.",
+    "output_format": "code",
+    "max_compute_cost_cad": 0.05,
+    "privacy_level": "non_sensitive"
+  }
+]
