@@ -1,0 +1,51 @@
+{
+  "packet": "OAE_A2A_BUYER_AGENT_PACKET",
+  "version": "0.1",
+  "intent": "Invite compatible agents to discover, quote, and purchase small managed compute jobs from OAE Compute Relay.",
+  "relay": {
+    "name": "OAE Compute Relay",
+    "agent_card_url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json",
+    "protocol_url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol",
+    "quote_url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/a2a/quote",
+    "payment_link": "https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f",
+    "price_cad": 5
+  },
+  "best_fit_jobs": [
+    "summarize public documentation into JSON or Markdown",
+    "generate a small code skeleton",
+    "convert a product brief into an agent spec",
+    "create a README starter",
+    "build a tiny prompt pack",
+    "create a public repo or Space launch checklist"
+  ],
+  "do_not_send": [
+    "private or sensitive data",
+    "medical, legal, or financial decision tasks",
+    "spam or unauthorized outreach automation",
+    "private scraping tasks",
+    "GPU-heavy training/image/video jobs without a separate quote",
+    "tasks requiring guaranteed business outcomes"
+  ],
+  "quote_request_template": {
+    "job": {
+      "job_id": "agent-generated-id",
+      "paid": false,
+      "credit_cad": 5,
+      "task_type": "text",
+      "task": "Describe the small public/non-sensitive task here.",
+      "output_format": "markdown",
+      "max_compute_cost_cad": 0.25,
+      "privacy_level": "public"
+    }
+  },
+  "workflow": [
+    "Call agent_card_url or protocol_url to discover capabilities.",
+    "Call quote_url with a small public/non-sensitive job.",
+    "Review route, cost estimate, risk flags, and pay_url.",
+    "If acceptable, purchase OAE Compute Relay Credit.",
+    "Submit paid job through trusted control-plane or protected route after payment verification.",
+    "Receive artifact and ledger hash."
+  ],
+  "positioning": "OAE Compute Relay sells managed task execution and artifacts, not raw compute resale.",
+  "human_contact_note": "For the current pilot phase, paid jobs may be fulfilled through the ChatGPT/connector control plane while Stripe webhook hardening is completed."
+}
