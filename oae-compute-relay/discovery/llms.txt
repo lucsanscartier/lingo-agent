@@ -1,0 +1,75 @@
+# OAE Compute Relay
+
+OAE Compute Relay is a managed AI job execution relay for small agent-to-agent compute tasks.
+
+It lets an external agent or builder:
+
+1. discover the relay,
+2. request a quote for a small public/non-sensitive AI task,
+3. receive route, cost, risk, and payment details,
+4. buy a $5 CAD compute credit,
+5. route the paid job into a managed execution flow,
+6. receive an artifact and ledger hash.
+
+## Live Gateway
+
+Base URL:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
+
+## Agent Card
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
+
+## Buyer Agent Packet
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+
+## Public Routes
+
+GET /health
+GET /protocol
+GET /.well-known/agent-card.json
+GET /buyer-agent-packet.json
+POST /a2a/quote
+POST /message:send
+POST /message/send
+
+## Protected Routes
+
+POST /stripe/event-to-queue
+POST /stripe/webhook
+
+Protected routes require relay authorization and should not be used as public unauthenticated job submission endpoints.
+
+## Product
+
+OAE Compute Relay Credit
+Price: $5 CAD
+Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
+
+## Best Fit Jobs
+
+- summarize public documentation into JSON or Markdown
+- generate a small code skeleton
+- convert a project brief into an agent spec
+- create a README starter
+- build a tiny prompt pack
+- create a public repo or Hugging Face Space launch checklist
+
+## Do Not Send
+
+- private or sensitive data
+- medical, legal, or financial decision tasks
+- spam or unauthorized outreach automation
+- private scraping tasks
+- GPU-heavy training, image, or video jobs without a separate quote
+- tasks requiring guaranteed business outcomes
+
+## Positioning
+
+OAE Compute Relay sells managed task execution and result artifacts, not raw compute resale.
+
+## Source
+
+GitHub folder:
+https://github.com/lucsanscartier/lingo-agent/tree/main/oae-compute-relay
