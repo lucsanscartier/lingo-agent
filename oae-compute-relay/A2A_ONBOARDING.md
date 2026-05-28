@@ -1,5 +1,24 @@
 # OAE Compute Relay — Agent-to-Agent Onboarding
 
+OAE Compute Relay is a managed AI job execution relay for small agent-to-agent compute tasks.
+
+It is designed so compatible GPTs, buyer agents, crawlers, and automation tools can discover the relay, request quotes, purchase a small compute credit, and retrieve artifacts without Luc manually messaging prospects.
+
+## Status
+
+Validated v0.1 lightweight loop:
+
+```txt
+Stripe checkout
+→ signed webhook
+→ Supabase gateway
+→ compute_jobs done row
+→ payment analytics event
+→ artifact lookup route
+→ artifact displayed
+→ artifact lookup analytics event
+```
+
 ## Live gateway
 
 Base URL:
@@ -8,27 +27,50 @@ Base URL:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
 ```
 
-## Public routes
+## A2A demo harness
 
-These are open for agent discovery and quoting:
+Human/agent demo page:
 
 ```txt
-GET  /health
-GET  /protocol
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
+```
+
+Machine-readable demo packet:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
+```
+
+Health check:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/health
+```
+
+## Discovery routes
+
+```txt
+GET /health
+GET /protocol
+GET /.well-known/agent-card.json
+GET /buyer-agent-packet.json
 POST /quote
 POST /a2a/quote
+POST /message:send
+POST /message/send
+POST /artifact/lookup
+GET /artifact/:job_id?payment_intent=pi_...
+GET /artifact/:job_id?email=buyer@example.com
 ```
 
 ## Protected routes
-
-These require `x-oae-relay-secret` and are not public submission routes:
 
 ```txt
 POST /stripe/event-to-queue
 POST /stripe/webhook
 ```
 
-Protected routes use a temporary bootstrap secret in the deployed gateway until proper Supabase environment secrets are configured.
+Protected routes require relay authorization or Stripe signature verification. They are not public unauthenticated job submission endpoints.
 
 ## Product
 
@@ -40,7 +82,7 @@ Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
 
 ## What agents can do now
 
-Agents can call `/a2a/quote` to price/route a job.
+Agents can call `/a2a/quote` to price and route a job.
 
 Example request:
 
@@ -79,29 +121,88 @@ Example response shape:
 }
 ```
 
+## Artifact lookup
+
+Preferred route:
+
+```txt
+POST /artifact/lookup
+```
+
+Request with payment intent:
+
+```json
+{
+  "job_id": "stripe-or-agent-job-id",
+  "payment_intent": "pi_..."
+}
+```
+
+or with buyer email:
+
+```json
+{
+  "job_id": "stripe-or-agent-job-id",
+  "email": "buyer@example.com"
+}
+```
+
+Successful lookup returns:
+
+```txt
+job_id
+status
+paid
+task_type
+output_format
+privacy_level
+artifact_sha256
+evidence_label
+fulfilled_by
+fulfilled_at
+artifact_markdown
+created_at
+updated_at
+```
+
+The response does not return customer email or Stripe verifier fields.
+
 ## Execution model
 
 ```txt
 agent requests quote
 → gateway returns route/cost/payment link
-→ payment is verified by trusted control plane/webhook
-→ paid queue record is created
-→ HF Jobs relay executes the compute
-→ artifact + ledger hash returned
+→ payment is verified by signed Stripe webhook
+→ paid job record is created
+→ lightweight v0.1 route produces deterministic artifact immediately
+→ heavier future routes can be deferred to HF Jobs
+→ buyer/agent retrieves artifact with job_id plus verifier
+→ analytics logs payment and retrieval events
 ```
 
 ## Guardrails
 
 - Do not frame this as raw compute resale.
-- We sell completed managed job execution / artifacts.
+- OAE sells completed managed job execution and artifacts.
 - GPU or heavy jobs require deposit and explicit margin check.
-- Private/sensitive data requires a privacy route.
-- Stripe webhook verification is not complete until `STRIPE_WEBHOOK_SECRET` is configured.
-- Temporary bootstrap secret must be rotated into Supabase environment secrets before broad public use.
+- Do not send private or sensitive data to the lightweight public route.
+- Do not use this for medical, legal, or financial decision tasks.
+- Do not use this for spam, private scraping, or guaranteed business outcomes.
 
-## Current status
+## Safe example tasks
 
-- Public quote API: live and tested.
-- Protected queue/write API: deployed and secret-gated.
-- HF Jobs relay: tested with generated queue.
-- Full production webhook verification: TODO.
+- summarize public documentation into JSON or Markdown
+- generate a small code skeleton
+- convert a product brief into an agent spec
+- create a README starter
+- build a tiny prompt pack
+- create a public repo or Hugging Face Space launch checklist
+
+## Agent discovery surfaces
+
+- `oae-compute-relay/discovery/llms.txt`
+- live agent card
+- live buyer-agent packet
+- live protocol endpoint
+- live A2A demo harness
+- GitHub folder source
