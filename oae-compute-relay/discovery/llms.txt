@@ -9,12 +9,38 @@ It lets an external agent or builder:
 3. receive route, cost, risk, and payment details,
 4. buy a $5 CAD compute credit,
 5. route the paid job into a managed execution flow,
-6. receive an artifact and ledger hash.
+6. retrieve an artifact and ledger hash.
+
+## Current Status
+
+Validated v0.1 lightweight loop:
+
+```txt
+Stripe checkout
+→ signed webhook
+→ Supabase gateway
+→ compute_jobs done row
+→ payment analytics event
+→ artifact lookup route
+→ artifact displayed
+→ artifact lookup analytics event
+```
 
 ## Live Gateway
 
 Base URL:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
+
+## A2A Demo Harness
+
+Human/agent demo page:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
+
+Machine JSON packet:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
+
+Health:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/health
 
 ## Agent Card
 
@@ -23,6 +49,10 @@ https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/
 ## Buyer Agent Packet
 
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+
+## Protocol
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
 
 ## Public Routes
 
@@ -33,13 +63,16 @@ GET /buyer-agent-packet.json
 POST /a2a/quote
 POST /message:send
 POST /message/send
+POST /artifact/lookup
+GET /artifact/:job_id?payment_intent=pi_...
+GET /artifact/:job_id?email=buyer@example.com
 
 ## Protected Routes
 
 POST /stripe/event-to-queue
 POST /stripe/webhook
 
-Protected routes require relay authorization and should not be used as public unauthenticated job submission endpoints.
+Protected routes require relay authorization or Stripe signature verification. They should not be used as public unauthenticated job submission endpoints.
 
 ## Product
 
@@ -64,6 +97,15 @@ Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
 - private scraping tasks
 - GPU-heavy training, image, or video jobs without a separate quote
 - tasks requiring guaranteed business outcomes
+
+## Minimal Buyer-Agent Flow
+
+1. Fetch the demo packet: `GET /functions/v1/oae-a2a-demo/agent-demo.json`.
+2. Fetch protocol and agent card.
+3. Request quote with a safe public task.
+4. Use the returned pay link or the known $5 CAD payment link.
+5. After payment, use `POST /artifact/lookup` with `job_id` plus `payment_intent` or buyer email.
+6. Verify `artifact_sha256`, `evidence_label`, and `fulfilled_by`.
 
 ## Positioning
 
