@@ -1,0 +1,71 @@
+{
+  "protocolVersion": "1.0",
+  "name": "OAE Compute Relay",
+  "description": "Managed AI job execution relay for small agent-to-agent compute tasks. Quotes jobs, routes them through a controlled compute relay, and returns artifacts with hashes.",
+  "url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway",
+  "provider": {
+    "organization": "OAE / Luc Sanscartier",
+    "url": "https://github.com/lucsanscartier/lingo-agent/tree/main/oae-compute-relay"
+  },
+  "version": "0.1.3-pathfix",
+  "documentationUrl": "https://github.com/lucsanscartier/lingo-agent/blob/main/oae-compute-relay/A2A_ONBOARDING.md",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": ["text/plain", "application/json"],
+  "defaultOutputModes": ["text/plain", "application/json", "text/markdown"],
+  "interfaces": [
+    {
+      "url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway",
+      "transport": "HTTP+JSON",
+      "description": "Public quote/protocol interface plus protected payment-to-queue routes."
+    }
+  ],
+  "skills": [
+    {
+      "id": "oae.compute.quote",
+      "name": "Quote managed compute job",
+      "description": "Estimate route, cost, margin, risk flags, and payment link for a small AI compute job.",
+      "tags": ["compute", "quote", "pricing", "agent-to-agent"],
+      "examples": [
+        "Quote a text job to summarize a public document into JSON.",
+        "Quote a small code skeleton generation job.",
+        "Quote an agent spec generation task."
+      ],
+      "inputModes": ["application/json", "text/plain"],
+      "outputModes": ["application/json"]
+    },
+    {
+      "id": "oae.compute.submit_paid_job",
+      "name": "Submit paid compute job",
+      "description": "Protected skill for converting verified payment events into queue records for Hugging Face Jobs execution.",
+      "tags": ["compute", "payment", "queue", "protected"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ],
+  "securitySchemes": {
+    "relaySecret": {
+      "type": "apiKey",
+      "name": "x-oae-relay-secret",
+      "in": "header",
+      "description": "Required only for protected payment/queue routes. Public quote routes do not require this header."
+    }
+  },
+  "security": [],
+  "x-oae": {
+    "publicRoutes": ["GET /health", "GET /protocol", "POST /a2a/quote"],
+    "protectedRoutes": ["POST /stripe/event-to-queue", "POST /stripe/webhook"],
+    "paymentLink": "https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f",
+    "priceCad": 5,
+    "guardrails": [
+      "No raw compute resale framing.",
+      "No unpaid heavy compute.",
+      "No spam or unauthorized outreach automation.",
+      "Private/sensitive data requires privacy review.",
+      "GPU/heavy jobs require separate quote or deposit."
+    ]
+  }
+}
