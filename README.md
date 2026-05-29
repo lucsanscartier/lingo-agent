@@ -12,6 +12,60 @@ app_port: 7860
 
 > Your business never stops talking.
 
+## OAE Compute Relay — Agent-to-Agent Discovery
+
+This repo also contains the validated **OAE Compute Relay** discovery and handoff packet for small agent-to-agent compute/artifact jobs.
+
+Validated v0.1 loop:
+
+```text
+Stripe checkout
+→ signed webhook
+→ Supabase gateway
+→ compute_jobs done row
+→ payment analytics event
+→ artifact lookup route
+→ artifact displayed
+→ artifact lookup analytics event
+```
+
+Agent/crawler entry points:
+
+```text
+A2A demo page:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
+
+Machine JSON demo packet:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
+
+Live gateway:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
+
+Agent card:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
+
+Buyer-agent packet:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+```
+
+Repo docs:
+
+- [`oae-compute-relay/discovery/llms.txt`](oae-compute-relay/discovery/llms.txt)
+- [`oae-compute-relay/A2A_ONBOARDING.md`](oae-compute-relay/A2A_ONBOARDING.md)
+- [`oae-compute-relay/HUGGINGFACE_SPACE_README_MIRROR.md`](oae-compute-relay/HUGGINGFACE_SPACE_README_MIRROR.md)
+
+Minimal buyer-agent flow:
+
+```text
+fetch demo packet
+→ fetch protocol
+→ fetch agent card
+→ request quote
+→ pay through Stripe
+→ retrieve artifact with job_id + payment_intent/email
+→ verify artifact hash and evidence label
+```
+
 LINGO is a beta AI phone-agent backend. It is designed to answer inbound LiveKit SIP calls, transcribe callers with Deepgram, generate concise receptionist-style replies with Hugging Face chat inference, speak responses with Hugging Face TTS, and remember callers across calls.
 
 ## Current status
