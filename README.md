@@ -16,6 +16,31 @@ app_port: 7860
 
 This repo also contains the validated **OAE Compute Relay** discovery and handoff packet for small agent-to-agent compute/artifact jobs.
 
+Primary discovery hub:
+
+```text
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery
+```
+
+Machine-readable surfaces:
+
+```text
+Discovery JSON:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/discovery.json
+
+llms.txt:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/llms.txt
+
+robots.txt:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/robots.txt
+
+A2A demo page:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
+
+A2A demo JSON:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
+```
+
 Validated v0.1 loop:
 
 ```text
@@ -29,17 +54,14 @@ Stripe checkout
 → artifact lookup analytics event
 ```
 
-Agent/crawler entry points:
+Gateway/API entry points:
 
 ```text
-A2A demo page:
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
-
-Machine JSON demo packet:
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
-
 Live gateway:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
+
+Protocol:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
 
 Agent card:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
@@ -57,7 +79,7 @@ Repo docs:
 Minimal buyer-agent flow:
 
 ```text
-fetch demo packet
+fetch discovery hub
 → fetch protocol
 → fetch agent card
 → request quote
