@@ -2,21 +2,33 @@
 
 OAE Compute Relay is a managed AI job execution relay for small agent-to-agent compute tasks.
 
-It is designed so compatible GPTs, buyer agents, crawlers, and automation tools can discover the relay, request quotes, purchase a small compute credit, and retrieve artifacts without Luc manually messaging prospects.
+It is designed so compatible GPTs, buyer agents, crawlers, and automation tools can discover the relay, request quotes, purchase a small compute credit, store real task metadata, and retrieve or claim artifacts without Luc manually messaging prospects.
 
-## Status
-
-Validated v0.1 lightweight loop:
+## Current Proof Stack
 
 ```txt
-Stripe checkout
-→ signed webhook
-→ Supabase gateway
-→ compute_jobs done row
-→ payment analytics event
-→ artifact lookup route
-→ artifact displayed
-→ artifact lookup analytics event
+External agent discovery + quote path: PASS
+Real Stripe payment/webhook/job/artifact path: PASS
+Artifact retrieval + analytics event: PASS
+Quote-intent real-task paid claim: PASS
+```
+
+## Primary discovery hub
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery
+```
+
+Machine JSON:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/discovery.json
+```
+
+llms.txt:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/llms.txt
 ```
 
 ## Live gateway
@@ -41,13 +53,15 @@ Machine-readable demo packet:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
 ```
 
-Health check:
+## Product
 
 ```txt
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/health
+OAE Compute Relay Credit
+Price: $5 CAD
+Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
 ```
 
-## Discovery routes
+## Gateway discovery routes
 
 ```txt
 GET /health
@@ -63,7 +77,7 @@ GET /artifact/:job_id?payment_intent=pi_...
 GET /artifact/:job_id?email=buyer@example.com
 ```
 
-## Protected routes
+## Protected gateway routes
 
 ```txt
 POST /stripe/event-to-queue
@@ -72,102 +86,106 @@ POST /stripe/webhook
 
 Protected routes require relay authorization or Stripe signature verification. They are not public unauthenticated job submission endpoints.
 
-## Product
+## Quote-intent v0.2
+
+The quote-intent sidecar stores the real task before payment and can later claim a paid job into a task-specific artifact.
+
+Base URL:
 
 ```txt
-OAE Compute Relay Credit
-Price: $5 CAD
-Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent
 ```
 
-## What agents can do now
+Routes:
 
-Agents can call `/a2a/quote` to price and route a job.
+```txt
+GET /health
+GET /protocol
+POST /quote
+POST /quote-intent
+POST /claim
+GET /lookup?quote_id=...
+```
 
-Example request:
+Validated example:
+
+```txt
+quote_id: qi_85b8375e5963466f86
+job_id: qi-smoke-001
+status: fulfilled
+artifact_sha256: 013ecdbff680da4968f1356e97a3151783bb2117ba1fd8d678e095bd08db0600
+fulfilled_by: quote-intent-sidecar-v0.2-manual-claim
+evidence_label: GENERATED_ARTIFACT
+```
+
+### Quote-intent request
 
 ```json
 {
   "job": {
-    "job_id": "agent-quote-001",
-    "paid": false,
+    "job_id": "agent-demo-quote-intent-001",
     "credit_cad": 5,
     "task_type": "text",
-    "task": "Summarize this public documentation into JSON.",
-    "output_format": "json",
+    "task": "Create a short public launch checklist for an agent demo.",
+    "output_format": "markdown",
     "max_compute_cost_cad": 0.25,
     "privacy_level": "public"
   }
 }
 ```
 
-Example response shape:
+### Quote-intent response shape
 
 ```json
 {
   "status": "quoted",
-  "quote": {
-    "job_id": "agent-quote-001",
+  "quote_intent": {
+    "quote_id": "qi_...",
+    "job_id": "agent-demo-quote-intent-001",
     "task_type": "text",
-    "route": "template-local",
-    "estimated_cost_cad": 0.001,
+    "output_format": "markdown",
+    "privacy_level": "public",
     "credit_cad": 5,
+    "estimated_cost_cad": 0.001,
     "estimated_margin_cad": 4.999,
-    "allowed_to_run": false,
-    "risk_flags": ["UNPAID_JOB"],
-    "pay_url": "https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f"
-  },
-  "protocol": "OAE_A2A_COMPUTE_RELAY"
+    "pay_url": "https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f",
+    "claim_url": "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/claim"
+  }
 }
 ```
 
-## Artifact lookup
-
-Preferred route:
-
-```txt
-POST /artifact/lookup
-```
-
-Request with payment intent:
+### Quote-intent claim
 
 ```json
 {
-  "job_id": "stripe-or-agent-job-id",
+  "quote_id": "qi_...",
   "payment_intent": "pi_..."
 }
 ```
 
-or with buyer email:
+or:
 
 ```json
 {
-  "job_id": "stripe-or-agent-job-id",
+  "quote_id": "qi_...",
   "email": "buyer@example.com"
 }
 ```
 
-Successful lookup returns:
+Successful claim returns:
 
 ```txt
-job_id
 status
-paid
-task_type
-output_format
-privacy_level
+quote_id
+job_id
+paid_job_id
 artifact_sha256
 evidence_label
 fulfilled_by
-fulfilled_at
 artifact_markdown
-created_at
-updated_at
 ```
 
-The response does not return customer email or Stripe verifier fields.
-
-## Execution model
+## Minimal buyer-agent flow v0.1
 
 ```txt
 agent requests quote
@@ -175,9 +193,45 @@ agent requests quote
 → payment is verified by signed Stripe webhook
 → paid job record is created
 → lightweight v0.1 route produces deterministic artifact immediately
-→ heavier future routes can be deferred to HF Jobs
 → buyer/agent retrieves artifact with job_id plus verifier
 → analytics logs payment and retrieval events
+```
+
+## Quote-intent buyer-agent flow v0.2
+
+```txt
+agent creates quote intent with real task
+→ quote-intent service returns quote_id/pay_url/claim_url
+→ buyer/agent pays $5 CAD credit
+→ buyer/agent claims with quote_id + payment_intent/email
+→ quote_intent is fulfilled
+→ task-specific artifact is produced
+→ analytics logs quote_intent.created and quote_intent.fulfilled
+```
+
+## Dynamic Checkout v0.3 Status
+
+Automatic Stripe Checkout Session creation with `quote_id` metadata is the next upgrade.
+
+Desired v0.3 flow:
+
+```txt
+agent submits task
+→ system creates Stripe Checkout Session with quote_id/job_id metadata
+→ Stripe webhook receives metadata
+→ quote_intent auto-fulfills
+→ no manual “paid”/claim step
+```
+
+This deployment was blocked in the current ChatGPT connector context by platform safety checks around direct Stripe Checkout Session creation. Do not loop on this connector context.
+
+Recommended deployment routes:
+
+```txt
+- HF-write/server-enabled GPT instance
+- Supabase dashboard/manual Edge Function deploy
+- GitHub PR/manual review
+- external backend route that can safely call Stripe Checkout Sessions
 ```
 
 ## Guardrails
@@ -201,8 +255,10 @@ agent requests quote
 ## Agent discovery surfaces
 
 - `oae-compute-relay/discovery/llms.txt`
+- live discovery hub
 - live agent card
 - live buyer-agent packet
 - live protocol endpoint
 - live A2A demo harness
+- live quote-intent sidecar
 - GitHub folder source
