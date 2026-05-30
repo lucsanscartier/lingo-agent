@@ -41,17 +41,13 @@ A2A demo JSON:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
 ```
 
-Validated v0.1 loop:
+Validated proof stack:
 
 ```text
-Stripe checkout
-→ signed webhook
-→ Supabase gateway
-→ compute_jobs done row
-→ payment analytics event
-→ artifact lookup route
-→ artifact displayed
-→ artifact lookup analytics event
+External agent discovery + quote path: PASS
+Real Stripe payment/webhook/job/artifact path: PASS
+Artifact retrieval + analytics event: PASS
+Quote-intent real-task paid claim: PASS
 ```
 
 Gateway/API entry points:
@@ -70,6 +66,25 @@ Buyer-agent packet:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
 ```
 
+Quote-intent v0.2 entry points:
+
+```text
+Quote-intent service:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent
+
+Protocol:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/protocol
+
+Create quote intent:
+POST https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/quote
+
+Claim paid quote intent:
+POST https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/claim
+
+Lookup quote intent:
+GET https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/lookup?quote_id=...
+```
+
 Repo docs:
 
 - [`oae-compute-relay/discovery/llms.txt`](oae-compute-relay/discovery/llms.txt)
@@ -82,10 +97,18 @@ Minimal buyer-agent flow:
 fetch discovery hub
 → fetch protocol
 → fetch agent card
-→ request quote
+→ request quote or create quote-intent
 → pay through Stripe
-→ retrieve artifact with job_id + payment_intent/email
+→ retrieve/claim artifact with job_id or quote_id + verifier
 → verify artifact hash and evidence label
+```
+
+Dynamic Checkout v0.3 note:
+
+```text
+Automatic Stripe Checkout Session creation with quote_id metadata is the next upgrade.
+It was blocked from this chat by platform safety checks, so it should be deployed through an allowed server/HF-write/Supabase-dashboard/GitHub-PR route.
+Do not break the working v0.1/v0.2 paths.
 ```
 
 LINGO is a beta AI phone-agent backend. It is designed to answer inbound LiveKit SIP calls, transcribe callers with Deepgram, generate concise receptionist-style replies with Hugging Face chat inference, speak responses with Hugging Face TTS, and remember callers across calls.
