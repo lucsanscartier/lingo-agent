@@ -1,61 +1,131 @@
 # OAE Compute Relay
 
-OAE Compute Relay is a managed AI job execution relay for small agent-to-agent compute tasks.
+OAE Compute Relay is a managed AI job execution and artifact delivery relay for small agent-to-agent compute tasks.
 
 It lets an external agent or builder:
 
 1. discover the relay,
-2. request a quote for a small public/non-sensitive AI task,
-3. receive route, cost, risk, and payment details,
+2. request a quote or create a quote intent for a small public/non-sensitive AI task,
+3. receive route, cost, risk, payment, and claim details,
 4. buy a $5 CAD compute credit,
 5. route the paid job into a managed execution flow,
-6. retrieve an artifact and ledger hash.
+6. retrieve or claim an artifact and ledger hash.
 
-## Current Status
-
-Validated v0.1 lightweight loop:
+## Current Proof Stack
 
 ```txt
-Stripe checkout
-→ signed webhook
-→ Supabase gateway
-→ compute_jobs done row
-→ payment analytics event
-→ artifact lookup route
-→ artifact displayed
-→ artifact lookup analytics event
+External agent discovery + quote path: PASS
+Real Stripe payment/webhook/job/artifact path: PASS
+Artifact retrieval + analytics event: PASS
+Quote-intent real-task paid claim: PASS
 ```
+
+## Primary Discovery Hub
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery
+
+Machine JSON:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/discovery.json
+
+llms.txt:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/llms.txt
 
 ## Live Gateway
 
 Base URL:
+
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
+
+Protocol:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
+
+Agent card:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
+
+Buyer-agent packet:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+
+## Quote-Intent v0.2
+
+Quote-intent service:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent
+
+Protocol:
+
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/protocol
+
+Create quote intent:
+
+```txt
+POST https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/quote
+```
+
+Claim paid quote intent:
+
+```txt
+POST https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/claim
+```
+
+Lookup quote intent:
+
+```txt
+GET https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/lookup?quote_id=...
+```
+
+Quote-intent v0.2 has been validated with a real task:
+
+```txt
+agent stores real task
+→ user/agent pays
+→ paid job is linked back to quote intent
+→ task-specific artifact is produced
+→ quote_intent.fulfilled analytics event is logged
+```
+
+Verified example:
+
+```txt
+quote_id: qi_85b8375e5963466f86
+job_id: qi-smoke-001
+status: fulfilled
+artifact_sha256: 013ecdbff680da4968f1356e97a3151783bb2117ba1fd8d678e095bd08db0600
+fulfilled_by: quote-intent-sidecar-v0.2-manual-claim
+evidence_label: GENERATED_ARTIFACT
+```
 
 ## A2A Demo Harness
 
 Human/agent demo page:
+
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo
 
 Machine JSON packet:
+
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
 
 Health:
+
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/health
 
-## Agent Card
+## Product
 
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
-
-## Buyer Agent Packet
-
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
-
-## Protocol
-
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
+```txt
+OAE Compute Relay Credit
+Price: $5 CAD
+Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
+```
 
 ## Public Routes
 
+Gateway:
+
+```txt
 GET /health
 GET /protocol
 GET /.well-known/agent-card.json
@@ -66,19 +136,58 @@ POST /message/send
 POST /artifact/lookup
 GET /artifact/:job_id?payment_intent=pi_...
 GET /artifact/:job_id?email=buyer@example.com
+```
 
-## Protected Routes
+Quote-intent:
 
+```txt
+GET /health
+GET /protocol
+POST /quote
+POST /quote-intent
+POST /claim
+GET /lookup?quote_id=...
+```
+
+Protected gateway routes:
+
+```txt
 POST /stripe/event-to-queue
 POST /stripe/webhook
+```
 
 Protected routes require relay authorization or Stripe signature verification. They should not be used as public unauthenticated job submission endpoints.
 
-## Product
+## Minimal Buyer-Agent Flow v0.1
 
-OAE Compute Relay Credit
-Price: $5 CAD
-Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
+1. Fetch the discovery hub or A2A demo packet.
+2. Fetch protocol and agent card.
+3. Request quote with a safe public task.
+4. Use the returned pay link or the known $5 CAD payment link.
+5. After payment, use `POST /artifact/lookup` with `job_id` plus `payment_intent` or buyer email.
+6. Verify `artifact_sha256`, `evidence_label`, and `fulfilled_by`.
+
+## Quote-Intent Buyer-Agent Flow v0.2
+
+1. `POST /oae-quote-intent/quote` with a real public/non-sensitive task.
+2. Receive `quote_id`, `pay_url`, and `claim_url`.
+3. Pay the $5 CAD credit.
+4. `POST /oae-quote-intent/claim` with `quote_id` plus `payment_intent` or buyer email.
+5. Receive task-specific `artifact_markdown` and `artifact_sha256`.
+6. Verify `quote_intent.fulfilled` analytics event.
+
+## Dynamic Checkout v0.3 Status
+
+Dynamic Stripe Checkout Session creation with `quote_id` metadata is the next upgrade. It was blocked by platform safety checks in the current ChatGPT connector context. Do not loop on direct Stripe Checkout deployment here.
+
+Deploy v0.3 through one of:
+
+```txt
+- HF-write/server-enabled GPT instance
+- Supabase dashboard/manual Edge Function deploy
+- GitHub PR/manual review
+- external backend route that can safely call Stripe Checkout Sessions
+```
 
 ## Best Fit Jobs
 
@@ -98,15 +207,6 @@ Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
 - GPU-heavy training, image, or video jobs without a separate quote
 - tasks requiring guaranteed business outcomes
 
-## Minimal Buyer-Agent Flow
-
-1. Fetch the demo packet: `GET /functions/v1/oae-a2a-demo/agent-demo.json`.
-2. Fetch protocol and agent card.
-3. Request quote with a safe public task.
-4. Use the returned pay link or the known $5 CAD payment link.
-5. After payment, use `POST /artifact/lookup` with `job_id` plus `payment_intent` or buyer email.
-6. Verify `artifact_sha256`, `evidence_label`, and `fulfilled_by`.
-
 ## Positioning
 
 OAE Compute Relay sells managed task execution and result artifacts, not raw compute resale.
@@ -114,4 +214,5 @@ OAE Compute Relay sells managed task execution and result artifacts, not raw com
 ## Source
 
 GitHub folder:
+
 https://github.com/lucsanscartier/lingo-agent/tree/main/oae-compute-relay
