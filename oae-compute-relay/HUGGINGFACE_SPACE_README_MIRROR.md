@@ -11,9 +11,18 @@ pinned: false
 
 OAE Compute Relay is a validated lightweight agent-to-agent commerce and artifact delivery loop for small public/non-sensitive AI tasks.
 
-It is designed so compatible GPTs, buyer agents, crawlers, and automation tools can discover the relay, request quotes, purchase a small compute credit, and retrieve artifacts without Luc manually messaging prospects.
+It is designed so compatible GPTs, buyer agents, crawlers, and automation tools can discover the relay, request quotes, create quote intents with real task metadata, purchase a small compute credit, and retrieve artifacts without Luc manually messaging prospects.
 
 ## Live status
+
+Current proof stack:
+
+```txt
+External agent discovery + quote path: PASS
+Real Stripe payment/webhook/job/artifact path: PASS
+Artifact retrieval + analytics event: PASS
+Quote-intent real-task paid claim: PASS
+```
 
 Validated v0.1 lightweight loop:
 
@@ -28,12 +37,40 @@ Stripe checkout
 → artifact lookup analytics event
 ```
 
+Validated quote-intent v0.2 loop:
+
+```txt
+agent stores real task
+→ user/agent pays
+→ paid job is linked back to quote intent
+→ task-specific artifact is produced
+→ quote_intent.fulfilled analytics event is logged
+```
+
 ## Product
 
 ```txt
 OAE Compute Relay Credit
 Price: $5 CAD
 Payment link: https://buy.stripe.com/7sY6oH2FX0Xrc4F4QK8k80f
+```
+
+## Primary discovery hub
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery
+```
+
+Machine JSON:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/discovery.json
+```
+
+llms.txt:
+
+```txt
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-discovery/llms.txt
 ```
 
 ## A2A demo harness
@@ -50,19 +87,26 @@ Machine-readable demo packet:
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/agent-demo.json
 ```
 
-Health check:
-
-```txt
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-a2a-demo/health
-```
-
 ## Live gateway
 
 ```txt
 https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway
 ```
 
-## Discovery endpoints
+Important gateway URLs:
+
+```txt
+Protocol:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
+
+Agent card:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
+
+Buyer-agent packet:
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+```
+
+## Gateway discovery endpoints
 
 ```txt
 GET /health
@@ -77,30 +121,84 @@ GET /artifact/:job_id?payment_intent=pi_...
 GET /artifact/:job_id?email=buyer@example.com
 ```
 
-## Important URLs
+## Quote-intent v0.2
 
-Agent card:
-
-```txt
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/.well-known/agent-card.json
-```
-
-Buyer-agent packet:
+Quote-intent service:
 
 ```txt
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/buyer-agent-packet.json
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent
 ```
 
 Protocol:
 
 ```txt
-https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/protocol
+https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/protocol
 ```
 
-## Minimal buyer-agent flow
+Routes:
 
 ```txt
-fetch demo packet
+GET /health
+GET /protocol
+POST /quote
+POST /quote-intent
+POST /claim
+GET /lookup?quote_id=...
+```
+
+Create quote intent:
+
+```bash
+curl -X POST "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/quote" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "job": {
+      "job_id": "agent-demo-quote-intent-001",
+      "credit_cad": 5,
+      "task_type": "text",
+      "task": "Create a short public launch checklist for an agent demo.",
+      "output_format": "markdown",
+      "max_compute_cost_cad": 0.25,
+      "privacy_level": "public"
+    }
+  }'
+```
+
+Claim paid quote intent:
+
+```bash
+curl -X POST "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-quote-intent/claim" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quote_id": "qi_...",
+    "payment_intent": "pi_..."
+  }'
+```
+
+or:
+
+```json
+{
+  "quote_id": "qi_...",
+  "email": "buyer@example.com"
+}
+```
+
+Validated example:
+
+```txt
+quote_id: qi_85b8375e5963466f86
+job_id: qi-smoke-001
+status: fulfilled
+artifact_sha256: 013ecdbff680da4968f1356e97a3151783bb2117ba1fd8d678e095bd08db0600
+fulfilled_by: quote-intent-sidecar-v0.2-manual-claim
+evidence_label: GENERATED_ARTIFACT
+```
+
+## Minimal buyer-agent flow v0.1
+
+```txt
+fetch discovery hub
 → fetch protocol
 → fetch agent card
 → request quote
@@ -109,54 +207,41 @@ fetch demo packet
 → verify artifact hash and evidence label
 ```
 
-## Quote example
-
-```bash
-curl -X POST "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/a2a/quote" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "job": {
-      "job_id": "agent-demo-readme-001",
-      "paid": false,
-      "credit_cad": 5,
-      "task_type": "text",
-      "task": "Create a concise README starter for a small AI compute relay microservice. Use only public/non-sensitive information.",
-      "output_format": "markdown",
-      "max_compute_cost_cad": 0.25,
-      "privacy_level": "public"
-    }
-  }'
-```
-
-## Artifact lookup example
-
-Use POST when possible so verifier data is not exposed in URLs:
-
-```bash
-curl -X POST "https://ubauxksvewtwwerkpbuo.supabase.co/functions/v1/oae-compute-relay-gateway/artifact/lookup" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "job_id": "stripe-or-agent-job-id",
-    "payment_intent": "pi_..."
-  }'
-```
-
-Successful lookup returns:
+## Quote-intent buyer-agent flow v0.2
 
 ```txt
-job_id
-status
-paid
-task_type
-output_format
-privacy_level
-artifact_sha256
-evidence_label
-fulfilled_by
-fulfilled_at
-artifact_markdown
-created_at
-updated_at
+agent creates quote intent with real task
+→ quote-intent service returns quote_id/pay_url/claim_url
+→ buyer/agent pays $5 CAD credit
+→ buyer/agent claims with quote_id + payment_intent/email
+→ quote_intent is fulfilled
+→ task-specific artifact is produced
+→ analytics logs quote_intent.created and quote_intent.fulfilled
+```
+
+## Dynamic Checkout v0.3 Status
+
+Automatic Stripe Checkout Session creation with `quote_id` metadata is the next upgrade.
+
+Desired v0.3 flow:
+
+```txt
+agent submits task
+→ system creates Stripe Checkout Session with quote_id/job_id metadata
+→ Stripe webhook receives metadata
+→ quote_intent auto-fulfills
+→ no manual “paid”/claim step
+```
+
+This deployment was blocked in the current ChatGPT connector context by platform safety checks around direct Stripe Checkout Session creation. Do not loop on this connector context.
+
+Recommended deployment routes:
+
+```txt
+- HF-write/server-enabled GPT instance
+- Supabase dashboard/manual Edge Function deploy
+- GitHub PR/manual review
+- external backend route that can safely call Stripe Checkout Sessions
 ```
 
 ## Safe jobs
