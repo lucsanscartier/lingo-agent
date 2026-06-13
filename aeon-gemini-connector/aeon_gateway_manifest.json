@@ -1,0 +1,78 @@
+{
+  "manifest_type": "aeon_gemini_connector_handoff",
+  "version": "2026-06-12",
+  "status": "canonical_gateway_connected",
+  "agent_facing_api": "https://lucsanscartier-aeon-twin-mcp.hf.space",
+  "mcp_url": "https://lucsanscartier-aeon-twin-mcp.hf.space/mcp",
+  "decision": {
+    "canonical_access_layer": "visible_mcp_gateway",
+    "private_core_role": "backing_service",
+    "do_not_block_on_private_core_404s": true
+  },
+  "verified_matrix": {
+    "aeon_read": "PASS",
+    "aeon_persistent_gateway_write": "PASS",
+    "bridge_default": "PASS",
+    "rehydrate_exposes_persisted_writes": "PASS",
+    "linear_write": "PASS",
+    "direct_private_core_from_hf_job": "FAIL_BYPASSED",
+    "hf_repo_write": "FAIL"
+  },
+  "routes": {
+    "health": "/health",
+    "auth_modes": "/api/auth/modes",
+    "rehydrate": "/api/rehydrate",
+    "gpt_context": "/api/gpt/context",
+    "zero_key_summary": "/api/zero-key/summary",
+    "zero_key_endpoints": "/api/zero-key/endpoints",
+    "oae_status": "/api/oae/status",
+    "oae_payload": "/api/oae/payload",
+    "gateway_ingested": "/api/gateway/ingested",
+    "gateway_directives": "/api/gateway/directives",
+    "ingest_write": "/api/ingest"
+  },
+  "first_fetch": "https://lucsanscartier-aeon-twin-mcp.hf.space/api/rehydrate",
+  "required_context_sections": [
+    "context.auth_modes",
+    "context.architecture_manifest",
+    "context.zero_key_endpoints",
+    "context.oae_core_bridge",
+    "context.live",
+    "context.oracles",
+    "context.synchrony",
+    "context.keymaster",
+    "context.privacy_connections",
+    "context.gateway_persisted_state",
+    "context.ingested",
+    "context.rules_for_gpt"
+  ],
+  "remaining_infra_fix": {
+    "name": "HF_REPO_WRITE_TOKEN",
+    "needed_for": "repo commits to lucsanscartier/aeon-twin-mcp",
+    "current_status": "present in environment during prior tests but not granted/working for repo upload"
+  },
+  "agent_rules": [
+    "Use the visible MCP gateway as canonical.",
+    "Do not ask the user to paste token values into chat.",
+    "Do not expose token values.",
+    "Do not invent telemetry.",
+    "Do not expose raw IPs or secrets.",
+    "Do not claim correlation is causation.",
+    "Label data with an evidence label before making claims."
+  ],
+  "evidence_labels": [
+    "live",
+    "derived",
+    "remembered/staged",
+    "theoretical",
+    "simulation",
+    "proxy",
+    "key-required",
+    "aggregate-only",
+    "architectural/local",
+    "candidate",
+    "unverified",
+    "image-only",
+    "unavailable"
+  ]
+}
