@@ -12,6 +12,24 @@ MCP URL:
 https://lucsanscartier-aeon-twin-mcp.hf.space/mcp
 ```
 
+HuggingChat Linear MCP URL:
+
+```text
+https://lucsanscartier-aeon-twin-mcp.hf.space/mcp
+```
+
+Compatibility alias:
+
+```text
+https://lucsanscartier-aeon-twin-mcp.hf.space/mcp/linear
+```
+
+MCP server name:
+
+```text
+aeon-linear-mcp
+```
+
 ## Read routes
 
 | Route | Purpose | Verified state |
@@ -26,12 +44,28 @@ https://lucsanscartier-aeon-twin-mcp.hf.space/mcp
 | `/api/oae/payload` | OAE bridge payload | PASS |
 | `/api/gateway/ingested` | Persisted fallback writes | PASS |
 | `/api/gateway/directives` | Persisted directives | PASS |
+| `/mcp` | Streamable HTTP MCP endpoint for HuggingChat | IMPLEMENTED |
+| `/mcp/linear` | Compatibility alias for Linear MCP | IMPLEMENTED |
 
 ## Write route
 
 | Route | Purpose | Verified state |
 |---|---|---:|
 | `/api/ingest` | Persist fallback write into visible gateway state | PASS |
+
+## MCP tools
+
+| Tool | Purpose |
+|---|---|
+| `linear_search` | Search Linear issues by title/description |
+| `linear_get_issue` | Fetch Linear issue by identifier, e.g. GPT-69 |
+| `aeon_rehydrate_linear` | Pull core AEON / Shard Network Linear packet |
+
+Required Hugging Face Space secret for live Linear reads:
+
+```text
+LINEAR_API_KEY
+```
 
 ## Verified write behavior
 
